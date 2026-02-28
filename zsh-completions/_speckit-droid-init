@@ -1,0 +1,19 @@
+#compdef speckit-droid-init
+
+# Zsh completions for speckit-droid-init
+# Symlink to ~/.zsh/completions/_speckit-droid-init and run: compinit
+
+_speckit-droid-init() {
+  local -a persona_sets=(
+    'software:Standard software engineering personas (default)'
+    'writing:Technical writing and documentation personas'
+    'architecture:System architecture and design personas'
+  )
+
+  _arguments -s \
+    '1:project name:' \
+    '--personas[Persona set to use]:persona set:(($persona_sets))' \
+    '(-h --help)'{-h,--help}'[Show usage information]'
+}
+
+_speckit-droid-init "$@"

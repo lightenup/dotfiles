@@ -1,0 +1,2 @@
+#!/bin/sh
+sed -i '' '/Co-authored-by: factory-droid/d' "$1"

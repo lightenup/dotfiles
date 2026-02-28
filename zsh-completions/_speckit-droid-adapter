@@ -1,0 +1,80 @@
+#compdef speckit-droid-adapter -p */speckit-droid-adapter
+
+# Zsh tab completion for speckit-droid-adapter
+# Works both as a command on PATH and as ./adapter/speckit-droid-adapter
+#
+# Install: Symlink into your completions dir:
+#   ln -sf /path/to/completions/_speckit-droid-adapter ~/.zsh/completions/_speckit-droid-adapter
+
+_speckit-droid-adapter() {
+  local -a stages models reasoning_levels
+
+  stages=(
+    'constitution:Generate project constitution'
+    'specify:Create feature specification'
+    'clarify:Clarify requirements'
+    'plan:Generate implementation plan'
+    'checklist:Create acceptance checklist'
+    'tasks:Break plan into tasks'
+    'analyze:Analyze codebase for implementation'
+    'implement:Implement the feature'
+    'review:Review implementation (reviewer persona)'
+    'build:Implement + review loop (max 3 iterations)'
+  )
+
+  models=(
+    'claude-opus-4-6:Claude Opus 4.6'
+    'claude-opus-4-6-fast:Claude Opus 4.6 Fast Mode'
+    'claude-opus-4-5-20251101:Claude Opus 4.5 (droid default)'
+    'claude-sonnet-4-6:Claude Sonnet 4.6'
+    'claude-haiku-4-5:Claude Haiku 4.5'
+    'gpt-5.1:GPT-5.1'
+    'gpt-5.1-codex:GPT-5.1-Codex'
+    'gpt-5.1-codex-max:GPT-5.1-Codex-Max'
+    'gpt-5.2:GPT-5.2'
+    'gpt-5.2-codex:GPT-5.2-Codex'
+    'gpt-5.3-codex:GPT-5.3-Codex'
+    'gemini-3-pro-preview:Gemini 3 Pro'
+    'gemini-3-flash-preview:Gemini 3 Flash'
+    'glm-4.7:GLM-4.7'
+    'glm-5:GLM-5'
+    'kimi-k2.5:Kimi K2.5'
+    'minimax-m2.5:MiniMax M2.5'
+  )
+
+  reasoning_levels=(
+    'off:No extended reasoning'
+    'low:Light reasoning'
+    'medium:Moderate reasoning (default for most models)'
+    'high:Deep reasoning'
+    'max:Maximum reasoning depth'
+  )
+
+  _arguments -s \
+    '1:stage:->stage' \
+    '*:args:' \
+    '--auto[Autonomy level]:level:(low medium high)' \
+    '(-f --input-file)'{-f,--input-file}'[Attach reference document]:file:_files' \
+    '(-m --model)'{-m,--model}'[Model to use]:model:->model' \
+    '(-r --reasoning-effort)'{-r,--reasoning-effort}'[Reasoning effort level]:level:->reasoning' \
+    '--no-critique[Skip self-critique for specify/plan]' \
+    '--no-tests[Skip test/lint gating in build loop]' \
+    '--no-commit[Skip auto commit+push after build]' \
+    '--no-auto-route[Skip automatic routing suggestions]' \
+    '--dry-run[Show adapted prompt without executing]' \
+    '(-h --help)'{-h,--help}'[Show help]'
+
+  case "$state" in
+    stage)
+      _describe -t stages 'spec kit stage' stages
+      ;;
+    model)
+      _describe -t models 'droid model' models
+      ;;
+    reasoning)
+      _describe -t reasoning 'reasoning level' reasoning_levels
+      ;;
+  esac
+}
+
+_speckit-droid-adapter "$@"

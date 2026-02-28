@@ -1,0 +1,7 @@
+[user]
+name = Andreas Jacobsen
+email = andreas.jacobsen@skye.ey.com
+
+[core]
+sshCommand = ssh -i ~/.ssh/id_ed25519_ey_gh_enterprise
+

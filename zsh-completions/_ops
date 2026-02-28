@@ -1,0 +1,83 @@
+#compdef ops
+
+# Basic zsh completion for the ops dispatcher
+# Groups: cam, health, infra, gitops
+# Actions:
+#   cam:    health [--namespace --file --process-id --job-type --wait --address --keep-pf --debug]
+#           tunnel [-e/--env --namespace --operate-port --tasklist-port --portals --no-browser --no-wait]
+#   health: check  [-e/--env -t/--timeout -v/--verbose --mock --no-functional --functional-strict --skip-flux --skip-cert-manager --skip-ingress --skip-eso]
+#   infra:   init | plan | apply | export-outputs | teardown [--workloads --gitops --infra --all --helm]
+#   gitops:  bootstrap [--no-prompt --dry-run]
+#            reconcile [--cam --eso --all --no-source -n/--namespace]
+
+_ops() {
+  local -a groups cam_actions health_actions infra_actions gitops_actions
+  groups=(cam health infra gitops)
+  cam_actions=(health tunnel)
+  health_actions=(check)
+  infra_actions=(init plan apply export-outputs teardown)
+  gitops_actions=(bootstrap reconcile)
+
+  # Complete group at position 1
+  if (( CURRENT == 2 )); then
+    compadd -a groups
+    return
+  fi
+
+  # Complete action at position 2 based on group
+  if (( CURRENT == 3 )); then
+    case ${words[2]} in
+      cam)
+        compadd -a cam_actions ;;
+      health)
+        compadd -a health_actions ;;
+      infra)
+        compadd -a infra_actions ;;
+      gitops)
+        compadd -a gitops_actions ;;
+    esac
+    return
+  fi
+
+  # Complete flags/options based on group+action
+  case ${words[2]} in
+    cam)
+      if [[ ${words[3]} == health ]]; then
+        compadd -- -n --namespace -f --file --process-id --job-type --wait --address --keep-pf --debug -h --help
+      elif [[ ${words[3]} == tunnel ]]; then
+        compadd -- -e --env --namespace --operate-port --tasklist-port --portals --no-browser --no-wait -h --help
+      fi
+      ;;
+    health)
+      if [[ ${words[3]} == check ]]; then
+        compadd -- -e --env -t --timeout -v --verbose --mock --no-functional --functional-strict --skip-flux --skip-cert-manager --skip-ingress --skip-eso -h --help
+      fi
+      ;;
+    infra)
+      case ${words[3]} in
+        teardown)
+          compadd -- --workloads --gitops --infra --all --helm -h --help
+          ;;
+        plan|apply)
+          # Pass-through some common Terraform flags
+          compadd -- -var -var-file -target -compact-warnings -refresh=false -input=false -out -parallelism -lock=false
+          ;;
+        init|export-outputs)
+          # No specific flags
+          ;;
+      esac
+      ;;
+    gitops)
+      case ${words[3]} in
+        bootstrap)
+          compadd -- --no-prompt --dry-run -h --help
+          ;;
+        reconcile)
+          compadd -- --cam --eso --all --no-source -n --namespace -h --help
+          ;;
+      esac
+      ;;
+  esac
+}
+
+compdef _ops ops

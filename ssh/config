@@ -1,0 +1,6 @@
+Host pve
+  HostName 192.168.1.112
+  User ci
+  IdentityFile ~/.ssh/id_ci_pve
+  IdentitiesOnly yes
+

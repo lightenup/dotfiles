@@ -1,0 +1,8 @@
+[includeIf "gitdir:~/Development/ey/gh-enterprise/"]
+  path = ~/Development/ey/gh-enterprise/.gitconfig_ey
+
+[includeIf "gitdir:~/Development/private/"]
+  path = ~/Development/private/.gitconfig_private
+
+[core]
+  hooksPath = ~/.config/git/hooks

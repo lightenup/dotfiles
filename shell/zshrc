@@ -1,0 +1,38 @@
+source <(fzf --zsh)
+
+alias tf='terraform'
+
+fpath=(~/.zsh $fpath)
+
+autoload -Uz compinit
+compinit
+
+autoload bashcompinit && bashcompinit
+source $(brew --prefix)/etc/bash_completion.d/az
+
+export SUBL_HOME="/Applications/Sublime Text.app/Contents/SharedSupport/bin"
+#export JAVA_HOME="/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home"
+export ANDROID_HOME="/Users/Andreas.Jacobsen/Library/Android/sdk"
+export INTELLIJ_HOME="/Applications/IntelliJ IDEA.app/Contents/MacOS"
+export LOCAL_BIN="/Users/Andreas.Jacobsen/.local/bin"
+export LM_STUDIO_BIN="/Users/Andreas.Jacobsen/.local/bin" 
+
+export PATH="$HOME/bin:$SUBL_HOME:$JAVA_HOME:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$INTELLIJ_HOME:$LOCAL_BIN:$LM_STUDIO_BIN:$PATH"
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && . "/opt/homebrew/opt/nvm/nvm.sh"       # loads nvm
+[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && . "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+fpath=(~/.zsh/completions $fpath)
+autoload -U compinit && compinit
+
+alias start-zscaler="open -a /Applications/Zscaler/Zscaler.app --hide; sudo find /Library/LaunchDaemons -name '*zscaler*' -exec launchctl load {} \;"
+alias kill-zscaler="find /Library/LaunchAgents -name '*zscaler*' -exec launchctl unload {} \;;sudo find /Library/LaunchDaemons -name '*zscaler*' -exec launchctl unload {} \;"
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/Andreas.Jacobsen/.lmstudio/bin"
+# End of LM Studio CLI section
+
