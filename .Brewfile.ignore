@@ -1,0 +1,7 @@
+# Ignore list for task brew:reconcile
+#
+# One package/tap/extension per line, using the exact name from Brewfile.
+# Examples:
+# openssl@3
+# homebrew/cask/font-jetbrains-mono-nerd-font
+# ms-python.python

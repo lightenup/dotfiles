@@ -1,0 +1,49 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Run full dotfiles installation
+    cmds:
+      - ./install.sh
+
+  status:
+    desc: Show overall dotfiles status
+    cmds:
+      - task brew:check
+      - task symlinks:check
+      - git -C . status --short
+
+  brew:check:
+    desc: Verify machine matches Brewfile
+    cmds:
+      - brew bundle check --file=./Brewfile --no-upgrade
+
+  brew:install:
+    desc: Install/update Homebrew packages from Brewfile
+    cmds:
+      - brew bundle install --file=./Brewfile --no-upgrade
+
+  brew:reconcile:
+    desc: Show installed entries missing from Brewfile
+    cmds:
+      - ./scripts/brew-reconcile.sh
+
+  brew:dump:
+    desc: Replace Brewfile with full machine snapshot
+    cmds:
+      - brew bundle dump --file=./Brewfile --force
+
+  symlinks:check:
+    desc: Verify linked dotfiles symlinks
+    cmds:
+      - ./scripts/symlinks-check.sh
+
+  skills:install:
+    desc: Install or refresh upstream agent skills from skills.yml
+    cmds:
+      - ./scripts/skills-install.sh
+
+  skills:status:
+    desc: Show local agent skills and whether each entry is symlinked
+    cmds:
+      - ./scripts/skills-status.sh

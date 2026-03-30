@@ -25,6 +25,16 @@ export NVM_DIR="$HOME/.nvm"
 fpath=(~/.zsh/completions $fpath)
 autoload -U compinit && compinit
 
+DOTFILES_STATE_DIR="$HOME/.local/state/dotfiles"
+DOTFILES_LAST_DRIFT="$DOTFILES_STATE_DIR/last-drift.log"
+DOTFILES_WARN_MARKER="$DOTFILES_STATE_DIR/.drift-warning-$(date +%F)"
+
+if [ -f "$DOTFILES_LAST_DRIFT" ] && [ ! -f "$DOTFILES_WARN_MARKER" ]; then
+	echo "WARNING: dotfiles drift detected. Run: task -d $HOME/Development/private/dotfiles status"
+	mkdir -p "$DOTFILES_STATE_DIR"
+	touch "$DOTFILES_WARN_MARKER"
+fi
+
 alias start-zscaler="open -a /Applications/Zscaler/Zscaler.app --hide; sudo find /Library/LaunchDaemons -name '*zscaler*' -exec launchctl load {} \;"
 alias kill-zscaler="find /Library/LaunchAgents -name '*zscaler*' -exec launchctl unload {} \;;sudo find /Library/LaunchDaemons -name '*zscaler*' -exec launchctl unload {} \;"
 

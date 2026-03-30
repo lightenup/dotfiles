@@ -1,0 +1,3 @@
+upstream:
+  - repo: run-llama/llamaparse-agent-skills
+    skill: liteparse
