@@ -4,6 +4,8 @@ set -euo pipefail
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS_DIR="$HOME/.agents/skills"
 
+echo "Skills directory: $SKILLS_DIR"
+
 if [ ! -d "$SKILLS_DIR" ]; then
   echo "No skills directory found at $SKILLS_DIR"
   exit 0

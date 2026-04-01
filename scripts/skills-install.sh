@@ -2,9 +2,10 @@
 set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SKILLS_DIR="$HOME/.agents/skills"
+SKILLS_DIR="${SKILLS_DIR:-$HOME/.agents/skills}"
 
 mkdir -p "$SKILLS_DIR"
+echo "Target skills directory: $SKILLS_DIR"
 
 link_dir() {
   local src="$1" dst="$2"
@@ -40,17 +41,17 @@ while IFS='|' read -r repo skill; do
   [ -n "$repo" ] || continue
   [ -n "$skill" ] || continue
   echo "Installing upstream skill: $skill from $repo"
-  npx --yes skills add "$repo" --skill "$skill"
+  npx --yes skills add "$repo" --skill "$skill" --yes --global
 done < <(
   awk '
-    /^\s*-\s*repo:\s*/ {
+    /^[[:space:]]*-[[:space:]]*repo:[[:space:]]*/ {
       repo=$0
-      sub(/^\s*-\s*repo:\s*/, "", repo)
+      sub(/^[[:space:]]*-[[:space:]]*repo:[[:space:]]*/, "", repo)
       gsub(/"/, "", repo)
     }
-    /^\s*skill:\s*/ {
+    /^[[:space:]]*skill:[[:space:]]*/ {
       skill=$0
-      sub(/^\s*skill:\s*/, "", skill)
+      sub(/^[[:space:]]*skill:[[:space:]]*/, "", skill)
       gsub(/"/, "", skill)
       if (repo != "" && skill != "") {
         print repo "|" skill
