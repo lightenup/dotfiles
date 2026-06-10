@@ -4,5 +4,8 @@
 [includeIf "gitdir:~/Development/private/"]
   path = ~/Development/private/.gitconfig_private
 
+[includeIf "gitdir:~/Development/wilhem/"]
+  path = ~/Development/wilhem/.gitconfig_wilhem
+
 [core]
   hooksPath = ~/.config/git/hooks

@@ -29,9 +29,11 @@ link_file "$DOTFILES/shell/zprofile" "$HOME/.zprofile"
 info "Linking git config"
 mkdir -p "$HOME/Development/ey/gh-enterprise"
 mkdir -p "$HOME/Development/private"
+mkdir -p "$HOME/Development/wilhem"
 link_file "$DOTFILES/git/gitconfig"         "$HOME/.gitconfig"
 link_file "$DOTFILES/git/gitconfig_ey"      "$HOME/Development/ey/gh-enterprise/.gitconfig_ey"
 link_file "$DOTFILES/git/gitconfig_private" "$HOME/Development/private/.gitconfig_private"
+link_file "$DOTFILES/git/gitconfig_wilhem"  "$HOME/Development/wilhem/.gitconfig_wilhem"
 
 # ── Git hooks ──────────────────────────────────────────────────────────────
 info "Installing global git hooks"

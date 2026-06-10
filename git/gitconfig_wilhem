@@ -1,0 +1,6 @@
+[user]
+name = Andreas Jacobsen
+email = andreas.jacobsen@skye.ey.com
+
+[core]
+sshCommand = ssh -i ~/.ssh/id_rsa_wilhem -o IdentitiesOnly=yes -o PubkeyAcceptedAlgorithms=+ssh-rsa
