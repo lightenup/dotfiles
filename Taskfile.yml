@@ -26,7 +26,7 @@ tasks:
   brew:reconcile:
     desc: Show installed entries missing from Brewfile
     cmds:
-      - ./scripts/brew-reconcile.sh
+      - ./scripts/brew-reconcile.sh || [ $? -eq 2 ]
 
   brew:dump:
     desc: Replace Brewfile with full machine snapshot
@@ -47,3 +47,38 @@ tasks:
     desc: Show local agent skills and whether each entry is symlinked
     cmds:
       - ./scripts/skills-status.sh
+
+  skills:test:
+    desc: Run tests for skill shared libraries
+    cmds:
+      - python3 -m pytest skills/_lib/puml_drawio/tests/ -v {{.CLI_ARGS}}
+
+  mcp:install:
+    desc: Distribute MCP servers from mcp/servers.json into all AI clients
+    cmds:
+      - ./scripts/mcp-install.sh install
+
+  mcp:status:
+    desc: Show MCP servers configured per AI client
+    cmds:
+      - ./scripts/mcp-install.sh status
+
+  ocr:provision-tessdata:
+    desc: Download tessdata for Tesseract OCR fallback (en, sv, no, da)
+    cmds:
+      - mkdir -p ~/.local/share/tessdata
+      - |
+        for lang in eng swe nor dan; do
+          if [ ! -f ~/.local/share/tessdata/${lang}.traineddata ]; then
+            echo "Downloading ${lang}.traineddata..."
+            wget -q -O ~/.local/share/tessdata/${lang}.traineddata \
+              https://github.com/tesseract-ocr/tessdata_best/raw/main/${lang}.traineddata
+          else
+            echo "${lang}.traineddata already present"
+          fi
+        done
+
+  ocr:server:
+    desc: Manage the EasyOCR Docker server (start|stop|status)
+    cmds:
+      - ./scripts/ocr-server.sh {{.CLI_ARGS}}

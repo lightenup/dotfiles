@@ -94,6 +94,22 @@ else
   warn "npx not found — skipping skills installation"
 fi
 
+# ── MCP servers ────────────────────────────────────────────────────────────
+if command -v jq &>/dev/null; then
+  info "Distributing MCP servers to AI clients"
+  "$DOTFILES/scripts/mcp-install.sh" install || warn "mcp-install failed"
+else
+  warn "jq not found — skipping MCP server distribution"
+fi
+
+# ── Tessdata for liteparse OCR fallback ────────────────────────────────────
+if command -v task &>/dev/null; then
+  info "Provisioning tessdata for Tesseract OCR fallback"
+  task -d "$DOTFILES" ocr:provision-tessdata || warn "tessdata provisioning failed"
+else
+  warn "task not found — skipping tessdata provisioning"
+fi
+
 # ── Launchd drift checks ───────────────────────────────────────────────────
 info "Installing launchd drift check"
 mkdir -p "$HOME/Library/LaunchAgents"

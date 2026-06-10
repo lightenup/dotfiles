@@ -19,9 +19,12 @@ export LM_STUDIO_BIN="/Users/Andreas.Jacobsen/.local/bin"
 
 export PATH="$HOME/bin:$SUBL_HOME:$JAVA_HOME:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$INTELLIJ_HOME:$LOCAL_BIN:$LM_STUDIO_BIN:$PATH"
 
+export TESSDATA_PREFIX="$HOME/.local/share/tessdata"
+
 export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && . "/opt/homebrew/opt/nvm/nvm.sh"       # loads nvm
 [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && . "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+command -v nvm >/dev/null && nvm use default --silent >/dev/null 2>&1           # activate default node (v24 LTS)
 fpath=(~/.zsh/completions $fpath)
 autoload -U compinit && compinit
 

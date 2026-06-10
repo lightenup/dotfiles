@@ -1,0 +1,302 @@
+/*!
+ * @theme ey
+ * @author Andreas Jacobsen
+ * @description EY-branded Marp presentation theme.
+ *
+ * Usage: marp --theme /path/to/ey-marp.css slides.md
+ * Or in frontmatter: theme: ey (when using --theme-set pointing to this dir)
+ *
+ * Font stack: EYInterstate (EY proprietary) with Segoe UI / Calibri fallback.
+ */
+
+@import "default";
+
+:root {
+  /* EY brand palette */
+  --ey-yellow: #FFE600;
+  --ey-charcoal: #2E2E38;
+  --ey-dark: #1A1A24;
+  --ey-blue: #1F3864;
+  --ey-teal: #27ACAA;
+  --ey-gray-700: #333333;
+  --ey-gray-500: #6C6C6C;
+  --ey-gray-300: #C4C4CD;
+  --ey-gray-100: #F0F0F5;
+  --ey-white: #FFFFFF;
+
+  /* Font stack */
+  --ey-font: "EYInterstate Light", "Segoe UI", "Calibri", sans-serif;
+  --ey-font-bold: "EYInterstate Regular", "Segoe UI Semibold", "Calibri", sans-serif;
+  --ey-font-mono: "Cascadia Code", "Consolas", "Courier New", monospace;
+}
+
+/* ── Base slide ──────────────────────────────────────────────── */
+
+section {
+  font-family: var(--ey-font);
+  font-size: 26px;
+  color: var(--ey-charcoal);
+  background: var(--ey-white);
+  padding: 40px 50px;
+  line-height: 1.5;
+}
+
+/* ── Typography ──────────────────────────────────────────────── */
+
+h1 {
+  font-family: var(--ey-font-bold);
+  color: var(--ey-charcoal);
+  font-size: 40px;
+  border-bottom: 3px solid var(--ey-yellow);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+h2 {
+  font-family: var(--ey-font-bold);
+  color: var(--ey-blue);
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+h3 {
+  font-family: var(--ey-font-bold);
+  color: var(--ey-gray-700);
+  font-size: 24px;
+}
+
+h4 {
+  font-family: var(--ey-font-bold);
+  color: var(--ey-gray-500);
+  font-size: 20px;
+}
+
+strong {
+  font-family: var(--ey-font-bold);
+}
+
+code {
+  font-family: var(--ey-font-mono);
+  font-size: 0.85em;
+  background: var(--ey-gray-100);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+pre {
+  background: var(--ey-gray-100);
+  border-left: 4px solid var(--ey-teal);
+  border-radius: 4px;
+  padding: 16px;
+  font-size: 0.75em;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+}
+
+blockquote {
+  border-left: 4px solid var(--ey-yellow);
+  background: #FFFDE6;
+  padding: 12px 20px;
+  margin: 12px 0;
+  color: var(--ey-charcoal);
+  font-style: normal;
+}
+
+a {
+  color: var(--ey-teal);
+  text-decoration: none;
+}
+
+/* ── Tables ──────────────────────────────────────────────────── */
+
+table {
+  font-size: 0.78em;
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+}
+
+table + p {
+  margin-top: 24px;
+}
+
+th {
+  background: var(--ey-charcoal);
+  color: var(--ey-white);
+  font-family: var(--ey-font-bold);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ey-gray-300);
+}
+
+tr:nth-child(even) td {
+  background: var(--ey-gray-100);
+}
+
+/* ── Lists ───────────────────────────────────────────────────── */
+
+ul, ol {
+  margin: 8px 0;
+  padding-left: 1.5em;
+}
+
+li {
+  margin: 4px 0;
+}
+
+/* ── Slide type: title (dark background, yellow text) ────────── */
+/* Usage: <!-- _class: title --> */
+
+section.title {
+  background: var(--ey-charcoal);
+  color: var(--ey-white);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+}
+
+section.title h1 {
+  color: var(--ey-yellow);
+  border-bottom: 3px solid var(--ey-yellow);
+  font-size: 48px;
+}
+
+section.title h2 {
+  color: var(--ey-white);
+  font-size: 28px;
+}
+
+section.title a {
+  color: var(--ey-yellow);
+}
+
+section.title strong {
+  color: var(--ey-yellow);
+}
+
+/* ── Slide type: section (divider between sections) ──────────── */
+/* Usage: <!-- _class: section --> */
+
+section.section {
+  background: var(--ey-blue);
+  color: var(--ey-white);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+section.section h1 {
+  color: var(--ey-yellow);
+  border-bottom: none;
+  font-size: 44px;
+}
+
+section.section h2 {
+  color: var(--ey-white);
+  font-size: 26px;
+  font-family: var(--ey-font);
+}
+
+/* ── Slide type footer annotations (shared) ──────────────────── */
+
+section.decision::before,
+section.discovery::before,
+section.checklist::before {
+  position: absolute;
+  bottom: 18px;
+  left: 50px;
+  font-family: var(--ey-font-bold);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 10px 3px 8px;
+  border-radius: 3px;
+}
+
+/* ── Slide type: decision (highlight decision slides) ────────── */
+/* Usage: <!-- _class: decision --> */
+
+section.decision {
+  border-top: 6px solid var(--ey-yellow);
+}
+
+section.decision::before {
+  content: "⬡  Decision";
+  color: var(--ey-charcoal);
+  background: var(--ey-yellow);
+}
+
+/* ── Slide type: discovery (questions/workshop) ──────────────── */
+/* Usage: <!-- _class: discovery --> */
+
+section.discovery {
+  border-top: 6px solid var(--ey-teal);
+}
+
+section.discovery::before {
+  content: "?  Discovery";
+  color: var(--ey-white);
+  background: var(--ey-teal);
+}
+
+section.discovery blockquote {
+  border-left-color: var(--ey-teal);
+  background: #E8F7F6;
+}
+
+/* ── Slide type: checklist (summary/decision check) ──────────── */
+/* Usage: <!-- _class: checklist --> */
+
+section.checklist {
+  border-top: 6px solid var(--ey-yellow);
+}
+
+section.checklist::before {
+  content: "☑  Checklist";
+  color: var(--ey-charcoal);
+  background: var(--ey-yellow);
+}
+
+section.checklist table td:last-child {
+  text-align: center;
+  width: 80px;
+}
+
+/* ── Page number ─────────────────────────────────────────────── */
+
+section::after {
+  font-size: 14px;
+  color: var(--ey-gray-500);
+}
+
+/* ── Images ──────────────────────────────────────────────────── */
+
+img {
+  display: block;
+  margin: 8px auto;
+}
+
+/* ── Utility: EY yellow accent bar at top ────────────────────── */
+/* Usage: <!-- _class: accent --> */
+
+section.accent {
+  border-top: 6px solid var(--ey-yellow);
+}
+
+/* ── Utility: two-column layout ──────────────────────────────── */
+/* Usage: wrap content in <div class="columns"> <div> ... </div> <div> ... </div> </div> */
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}

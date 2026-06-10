@@ -4,3 +4,8 @@ Host pve
   IdentityFile ~/.ssh/id_ci_pve
   IdentitiesOnly yes
 
+
+Host github-ey
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_ey_gh_enterprise

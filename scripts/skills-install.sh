@@ -3,9 +3,12 @@ set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS_DIR="${SKILLS_DIR:-$HOME/.agents/skills}"
+FACTORY_SKILLS_DIR="$HOME/.factory/skills"
 
 mkdir -p "$SKILLS_DIR"
+mkdir -p "$FACTORY_SKILLS_DIR"
 echo "Target skills directory: $SKILLS_DIR"
+echo "Factory skills directory: $FACTORY_SKILLS_DIR"
 
 link_dir() {
   local src="$1" dst="$2"
@@ -17,12 +20,20 @@ link_dir() {
   ln -s "$src" "$dst"
 }
 
+# Shared libraries from dotfiles/skills/_lib
+if [ -d "$DOTFILES/skills/_lib" ]; then
+  link_dir "$DOTFILES/skills/_lib" "$SKILLS_DIR/_lib"
+  link_dir "$DOTFILES/skills/_lib" "$FACTORY_SKILLS_DIR/_lib"
+  echo "Linked shared lib: _lib"
+fi
+
 # Custom local skills from dotfiles/skills
 for skill_dir in "$DOTFILES"/skills/*; do
   [ -d "$skill_dir" ] || continue
   [ -f "$skill_dir/SKILL.md" ] || continue
   skill_name="$(basename "$skill_dir")"
   link_dir "$skill_dir" "$SKILLS_DIR/$skill_name"
+  link_dir "$skill_dir" "$FACTORY_SKILLS_DIR/$skill_name"
   echo "Linked custom skill: $skill_name"
 done
 
