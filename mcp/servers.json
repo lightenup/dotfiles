@@ -7,8 +7,13 @@
     },
     "personal-financial-scenarios": {
       "type": "http",
-      "url": "http://localhost:3000/mcp",
+      "url": "https://financial-scenario.hus-sky.no/mcp",
       "headers": { "X-MCP-Secret": "mcp-local-secret" },
+      "disabled": false
+    },
+    "market-model": {
+      "type": "http",
+      "url": "https://market-model.hus-sky.no/mcp",
       "disabled": false
     }
   }
