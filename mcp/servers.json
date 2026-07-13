@@ -4,6 +4,12 @@
       "type": "http",
       "url": "https://mcp.context7.com/mcp",
       "disabled": false
+    },
+    "personal-financial-scenarios": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp",
+      "headers": { "X-MCP-Secret": "mcp-local-secret" },
+      "disabled": false
     }
   }
 }
