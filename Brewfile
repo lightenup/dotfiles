@@ -1,9 +1,10 @@
-tap "azure/bicep"
-tap "azure/functions"
-tap "fluxcd/tap"
-tap "isen-ng/dotnet-sdk-versions"
-tap "oarrabi/tap"
-tap "run-llama/liteparse"
+tap "azure/bicep", trusted: true
+tap "azure/functions", trusted: true
+tap "fluxcd/tap", trusted: true
+tap "isen-ng/dotnet-sdk-versions", trusted: true
+tap "nsomar/tap", "https://github.com/nsomar/homebrew-tap.git"
+tap "oarrabi/tap", trusted: true
+tap "run-llama/liteparse", trusted: true
 brew "act"
 brew "actionlint"
 brew "age"
@@ -76,6 +77,7 @@ brew "unar"
 brew "rbw"
 cask "android-platform-tools"
 cask "calibre"
+cask "chromium"
 cask "docker-desktop"
 cask "font-hack-nerd-font"
 cask "font-jetbrains-mono-nerd-font"
