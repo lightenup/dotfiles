@@ -1,0 +1,16 @@
+# Non-secret Nextcloud configuration (safe to commit — no password here).
+# Every value can be overridden by an environment variable of the same name.
+
+# Base URL of the Nextcloud instance.
+NEXTCLOUD_URL="${NEXTCLOUD_URL:-https://nextcloud.hus-sky.no}"
+
+# Login identity used for HTTP auth (this instance logs in by email).
+NEXTCLOUD_LOGIN="${NEXTCLOUD_LOGIN:-andreasjacobsenprivate@proton.me}"
+
+# WebDAV path segment = the Nextcloud *user id* (NOT the login email).
+# Discover with:  curl -u "$LOGIN:$PW" -H 'OCS-APIRequest: true' \
+#                   "$NEXTCLOUD_URL/ocs/v1.php/cloud/user?format=json"  -> .ocs.data.id
+NEXTCLOUD_USERID="${NEXTCLOUD_USERID:-Andreas}"
+
+# Name of the Bitwarden item (read via rbw) holding the Nextcloud app password.
+NEXTCLOUD_SECRET_ITEM="${NEXTCLOUD_SECRET_ITEM:-NextCloud - Andreas}"
