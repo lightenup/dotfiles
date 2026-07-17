@@ -1,0 +1,53 @@
+# Central Microsoft product-icon catalog for draw.io C4 diagrams.
+# Curated, renamed subset of the official Microsoft icon packs; grow on demand.
+# Columns (tab/space separated): KEY  FILE  PACK  ALIASES
+#   KEY      stable snake_case name
+#   FILE     path relative to this directory
+#   PACK     source pack (provenance)
+#   ALIASES  comma-separated PlantUML sprite / component-id names that map here
+#
+# The shared puml_drawio lib base64-embeds FILE into the .drawio so icons render
+# via the draw.io CLI without depending on its bundled shape libraries.
+# Licences: see LICENSES/ (Microsoft Terms of Use / FAQ must travel with these).
+
+logic_apps           azure/logic_apps.svg              azure-public-service-icons-v23  AzureLogicApps
+service_bus          azure/service_bus.svg             azure-public-service-icons-v23  AzureServiceBus
+data_factory         azure/data_factory.svg            azure-public-service-icons-v23  AzureDataFactory
+api_management       azure/api_management.svg          azure-public-service-icons-v23  AzureAPIManagement
+event_grid           azure/event_grid.svg              azure-public-service-icons-v23  AzureEventGrid
+functions            azure/functions.svg               azure-public-service-icons-v23  AzureFunction,AzureFunctions
+key_vault            azure/key_vault.svg               azure-public-service-icons-v23  AzureKeyVault,AzureKeyVaults
+monitor              azure/monitor.svg                 azure-public-service-icons-v23  AzureMonitor,AzureMonitoring
+application_insights  azure/application_insights.svg   azure-public-service-icons-v23  AzureApplicationInsights,AppInsights
+app_configuration    azure/app_configuration.svg       azure-public-service-icons-v23  AzureAppConfiguration
+# networking
+application_gateway  azure/application_gateway.svg      azure-public-service-icons-v23  AzureApplicationGateway,AzureAppGateway
+front_door           azure/front_door.svg               azure-public-service-icons-v23  AzureFrontDoor,AzureCDN
+firewall             azure/firewall.svg                 azure-public-service-icons-v23  AzureFirewall
+waf                  azure/waf.svg                      azure-public-service-icons-v23  AzureWAF,AzureWebApplicationFirewall
+load_balancer        azure/load_balancer.svg            azure-public-service-icons-v23  AzureLoadBalancer
+virtual_network      azure/virtual_network.svg          azure-public-service-icons-v23  AzureVirtualNetwork,AzureVNet
+vpn_gateway          azure/vpn_gateway.svg              azure-public-service-icons-v23  AzureVpnGateway,AzureVirtualNetworkGateway
+private_link         azure/private_link.svg             azure-public-service-icons-v23  AzurePrivateLink
+private_endpoint     azure/private_endpoint.svg         azure-public-service-icons-v23  AzurePrivateEndpoint
+dns_zone             azure/dns_zone.svg                 azure-public-service-icons-v23  AzureDNS,AzureDNSZone
+# compute / containers
+app_service          azure/app_service.svg              azure-public-service-icons-v23  AzureAppService,AzureAppServices
+container_instances  azure/container_instances.svg      azure-public-service-icons-v23  AzureContainerInstances,ACI
+container_apps       azure/container_apps.svg           azure-public-service-icons-v23  AzureContainerApps
+kubernetes           azure/kubernetes.svg               azure-public-service-icons-v23  AzureKubernetes,AzureKubernetesService,AKS
+virtual_machine      azure/virtual_machine.svg          azure-public-service-icons-v23  AzureVirtualMachine,AzureVM
+container_registry   azure/container_registry.svg       azure-public-service-icons-v23  AzureContainerRegistry,ACR
+# data
+sql_database         azure/sql_database.svg             azure-public-service-icons-v23  AzureSQLDatabase,AzureSQL
+cosmos_db            azure/cosmos_db.svg                azure-public-service-icons-v23  AzureCosmosDB,CosmosDB
+storage_account      azure/storage_account.svg          azure-public-service-icons-v23  AzureStorageAccount,AzureStorage
+data_lake            azure/data_lake.svg                azure-public-service-icons-v23  AzureDataLake,ADLS
+synapse              azure/synapse.svg                  azure-public-service-icons-v23  AzureSynapse,AzureSynapseAnalytics
+event_hubs           azure/event_hubs.svg               azure-public-service-icons-v23  AzureEventHubs,AzureEventHub
+redis                azure/redis.svg                    azure-public-service-icons-v23  AzureRedis,AzureCacheRedis
+finance_operations   dynamics/finance_operations.svg   dynamics-365-scalable           D365FinanceOperations,d365
+dynamics365          dynamics/dynamics365.svg          dynamics-365-scalable           D365,Dataverse,dataverse
+entra_id             entra/entra_id.svg                entra-oct-2023                  EntraID,AzureActiveDirectory
+entra_id_governance  entra/entra_id_governance.svg     entra-oct-2023                  EntraIDGovernance
+entra_verified_id    entra/entra_verified_id.svg       entra-oct-2023                  EntraVerifiedID

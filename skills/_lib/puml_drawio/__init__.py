@@ -9,6 +9,7 @@ from .puml_parser import (
     parse,
 )
 from .drawio_generator import generate, load_icon_map
+from . import icons
 
 __all__ = [
     "Boundary",
@@ -18,6 +19,7 @@ __all__ = [
     "Relationship",
     "TagStyle",
     "generate",
+    "icons",
     "load_icon_map",
     "parse",
 ]

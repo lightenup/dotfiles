@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import icons as _icons
 from .puml_parser import (
     Boundary,
     Component,
@@ -90,6 +91,11 @@ def _html_value(comp: Component, tag_styles: dict | None = None) -> str:
 
 
 def _icon_path(comp: Component) -> str:
+    # Central curated MS icons first: embeds the official SVG when the sprite or
+    # component id matches ms_icons/catalog.tsv (no-op if there is no match).
+    embedded = _icons.resolve(sprite=comp.sprite, comp_id=getattr(comp, "id", None))
+    if embedded:
+        return embedded
     if comp.sprite and comp.sprite in ICON_MAP:
         return ICON_MAP[comp.sprite]
     return FALLBACK_ICONS.get(comp.comp_type, "")

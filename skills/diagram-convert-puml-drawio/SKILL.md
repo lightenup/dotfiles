@@ -65,6 +65,28 @@ Create directories if they do not exist.
 
 5. If the user wants to overwrite, remove the existence check.
 
+## Central MS icon library (embedded official SVGs)
+
+For Microsoft/Azure architecture diagrams, the converter ships a curated library
+of **official Microsoft product SVGs** at `~/.factory/skills/_lib/ms_icons/`
+(`azure/`, `dynamics/`, `entra/` + `catalog.tsv` + `LICENSES/`). When a PlantUML
+`$sprite` (or a component id) matches an alias in `catalog.tsv`, the generator
+**base64-embeds** that SVG into the `.drawio`, so it renders reliably via the
+draw.io CLI (no dependence on the bundled `azure2` shapes, which are incomplete).
+
+```python
+from puml_drawio import icons
+icons.load_catalog()                     # defaults to ms_icons/catalog.tsv
+icons.sprite_file("AzureLogicApps")      # -> "azure/logic_apps.svg"
+icons.datauri("azure/logic_apps.svg")    # -> "data:image/svg+xml,<base64>"
+```
+
+Add an icon: drop the SVG in the right category folder (stable snake_case name),
+add a row to `catalog.tsv` (`KEY  FILE  PACK  ALIASES`), reference it via
+`$sprite=<Alias>`. Keep the Microsoft Terms of Use in `LICENSES/` with the icons.
+This central library takes priority; the `icons.json` sidecar below still works
+for project-specific overrides and non-MS shapes.
+
 ## Icon Map
 
 The converter uses a JSON sidecar file to map PlantUML sprite names to
