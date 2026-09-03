@@ -1,39 +1,43 @@
-source <(fzf --zsh)
+HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
 
-alias tf='terraform'
+command -v fzf >/dev/null && source <(fzf --zsh)
 
-fpath=(~/.zsh $fpath)
+alias tf='tofu'
+
+fpath=(~/.zsh ~/.zsh/completions $fpath)
 
 autoload -Uz compinit
 compinit
 
 autoload bashcompinit && bashcompinit
-source $(brew --prefix)/etc/bash_completion.d/az
+[ -r "$HOMEBREW_PREFIX/etc/bash_completion.d/az" ] && source "$HOMEBREW_PREFIX/etc/bash_completion.d/az"
 
 export SUBL_HOME="/Applications/Sublime Text.app/Contents/SharedSupport/bin"
-#export JAVA_HOME="/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home"
-export ANDROID_HOME="/Users/Andreas.Jacobsen/Library/Android/sdk"
+export ANDROID_HOME="$HOME/Library/Android/sdk"
 export INTELLIJ_HOME="/Applications/IntelliJ IDEA.app/Contents/MacOS"
-export LOCAL_BIN="/Users/Andreas.Jacobsen/.local/bin"
-export LM_STUDIO_BIN="/Users/Andreas.Jacobsen/.local/bin" 
+export LOCAL_BIN="$HOME/.local/bin"
 
-export PATH="$HOME/bin:$SUBL_HOME:$JAVA_HOME:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$INTELLIJ_HOME:$LOCAL_BIN:$LM_STUDIO_BIN:$PATH"
+# JAVA_HOME is deliberately absent here — mise sets it for the active JDK.
+export PATH="$HOME/bin:$SUBL_HOME:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$INTELLIJ_HOME:$LOCAL_BIN:$PATH"
 
 export TESSDATA_PREFIX="$HOME/.local/share/tessdata"
 
 export NVM_DIR="$HOME/.nvm"
-[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && . "/opt/homebrew/opt/nvm/nvm.sh"       # loads nvm
-[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && . "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+[ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && . "$HOMEBREW_PREFIX/opt/nvm/nvm.sh"                              # loads nvm
+[ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && . "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
 command -v nvm >/dev/null && nvm use default --silent >/dev/null 2>&1           # activate default node (v24 LTS)
-fpath=(~/.zsh/completions $fpath)
-autoload -U compinit && compinit
 
 DOTFILES_STATE_DIR="$HOME/.local/state/dotfiles"
 DOTFILES_LAST_DRIFT="$DOTFILES_STATE_DIR/last-drift.log"
 DOTFILES_WARN_MARKER="$DOTFILES_STATE_DIR/.drift-warning-$(date +%F)"
 
+# Resolve the repo through this file's own symlink so the hint stays correct
+# no matter where the clone lives.
+DOTFILES_DIR="$(cd "$(dirname "$(dirname "$(readlink "$HOME/.zshrc" 2>/dev/null)")")" 2>/dev/null && pwd)"
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/Development/private/dotfiles}"
+
 if [ -f "$DOTFILES_LAST_DRIFT" ] && [ ! -f "$DOTFILES_WARN_MARKER" ]; then
-	echo "WARNING: dotfiles drift detected. Run: task -d $HOME/Development/private/dotfiles status"
+	echo "WARNING: dotfiles drift detected. Run: task -d $DOTFILES_DIR status"
 	mkdir -p "$DOTFILES_STATE_DIR"
 	touch "$DOTFILES_WARN_MARKER"
 fi
@@ -45,7 +49,11 @@ alias kill-zscaler="find /Library/LaunchAgents -name '*zscaler*' -exec launchctl
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/Users/Andreas.Jacobsen/.lmstudio/bin"
-# End of LM Studio CLI section
+# After SDKMAN on purpose: mise owns dotnet and java (JAVA_HOME included), and
+# its per-prompt hook must win over anything SDKMAN prepends. Use mise, not
+# `sdk install java`, for JDKs.
+command -v mise >/dev/null && eval "$(mise activate zsh)"
 
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:$HOME/.lmstudio/bin"
+# End of LM Studio CLI section

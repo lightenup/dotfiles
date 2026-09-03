@@ -1,4 +1,9 @@
 
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
-export PATH="$PATH:/Users/Andreas.Jacobsen/.dotnet/tools"
+export PATH="$PATH:$HOME/.dotnet/tools"
+
+# Zscaler terminates TLS for some hosts (the VS Code marketplace CDN among
+# them). curl and Homebrew trust the keychain, node-based tools do not, so point
+# them at the exported root CA. Regenerate with: task certs:zscaler
+[ -r "$HOME/.config/certs/zscaler.pem" ] && export NODE_EXTRA_CA_CERTS="$HOME/.config/certs/zscaler.pem"
