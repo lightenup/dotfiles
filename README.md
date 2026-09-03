@@ -10,7 +10,43 @@ cd ~/Development/private/dotfiles
 ./install.sh
 ```
 
-Then manually copy SSH keys to ~/.ssh/.
+The clone path matters: `git/gitconfig` resolves your identity through
+`includeIf "gitdir:~/Development/private/"`, so a clone anywhere else has no
+`user.email` and commits fail.
+
+`install.sh` exits non-zero and lists what failed. A fresh machine usually needs
+two passes, because the first one installs the tools the later steps use.
+
+Then, manually:
+
+1. Copy SSH keys to `~/.ssh/`.
+2. Install the app casks that need an admin password, from an interactive shell:
+   `brew install --cask drawio kdiff3 turbovnc-viewer`
+3. `nvm install 20` if you need Node. dotnet and java come from mise.
+
+## Corporate proxy notes
+
+The corporate proxy terminates TLS for some hosts. curl, git and Homebrew trust
+the keychain, node-based tools do not, so `install.sh` exports the root CA to
+`~/.config/certs/zscaler.pem` and `zprofile` points `NODE_EXTRA_CA_CERTS` at it.
+Regenerate with `task certs:zscaler`.
+
+Homebrew scrubs `NODE_EXTRA_CA_CERTS` from its own environment, so
+`brew bundle` can never install the VS Code extensions here. `install.sh` runs
+`scripts/vscode-extensions.sh` first instead; the Brewfile stays the source of
+truth so `brew bundle check` still reports drift. Run it on its own with
+`task vscode:extensions`.
+
+Known blocks (declared nowhere, on purpose): meld and mullvad-browser downloads
+return 403 through the proxy, and SourceForge is redirected to the block page.
+
+## Toolchains
+
+- **dotnet, java**: mise, configured in `mise/config.toml` (symlinked to
+  `~/.config/mise/config.toml`). SDKs live side by side; `global.json`,
+  `.java-version` and `.sdkmanrc` are honoured. Use mise, not `sdk install java`.
+- **node**: nvm, unchanged.
+- **other SDKs**: SDKMAN, unchanged.
 
 ## Daily operations
 
