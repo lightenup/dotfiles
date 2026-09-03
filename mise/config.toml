@@ -1,0 +1,15 @@
+# Global mise tool versions. Symlinked to ~/.config/mise/config.toml.
+#
+# Scope: .NET SDKs and the JDK only. Node stays with nvm, other SDKs with SDKMAN.
+# mise installs .NET through Microsoft's official install script and keeps every
+# SDK side-by-side under one DOTNET_ROOT, so `dotnet --list-sdks` shows them all.
+
+[tools]
+dotnet = "latest"
+# Pinned to a vendor on purpose: mise's bare-number shorthand resolves to
+# OpenJDK, whose builds stop receiving patches after six months.
+java = "temurin-21"
+
+[settings]
+# Honour global.json, .java-version and .sdkmanrc when a project declares one.
+idiomatic_version_file_enable_tools = ["dotnet", "java"]
