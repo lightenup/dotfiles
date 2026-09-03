@@ -5,3 +5,7 @@
 # openssl@3
 # homebrew/cask/font-jetbrains-mono-nerd-font
 # ms-python.python
+
+# Installed on this machine but intentionally undeclared: the pkg installer
+# needs sudo, which breaks unattended `./install.sh` runs.
+blackhole-2ch

@@ -1,9 +1,10 @@
 tap "azure/bicep", trusted: true
 tap "azure/functions", trusted: true
 tap "fluxcd/tap", trusted: true
-tap "isen-ng/dotnet-sdk-versions", trusted: true
-tap "nsomar/tap", "https://github.com/nsomar/homebrew-tap.git"
-tap "oarrabi/tap", trusted: true
+# mockpy's tap: oarrabi/tap now redirects here. It ships a broken "codeimager"
+# cask (header token does not match the file name), so `brew tap` fails its audit
+# on a fresh machine; the clone still lands, so a second run succeeds.
+tap "nsomar/tap", trusted: true
 tap "run-llama/liteparse", trusted: true
 brew "act"
 brew "actionlint"
@@ -32,6 +33,7 @@ brew "helm"
 brew "jq"
 brew "lazygit"
 brew "maven"
+brew "mise"
 brew "neovim"
 brew "net-snmp"
 brew "nmap"
@@ -43,7 +45,8 @@ brew "pipx"
 brew "rbw"
 brew "rclone"
 brew "ripgrep"
-brew "terraform"
+# terraform is no longer in homebrew-core (BUSL relicense); opentofu covers it.
+# terraformer: upstream repo is archived, Homebrew disables it on 2027-06-08.
 brew "terraformer"
 brew "uv"
 brew "watch"
@@ -54,7 +57,7 @@ brew "zbctl"
 brew "azure/bicep/bicep"
 brew "azure/functions/azure-functions-core-tools@4"
 brew "fluxcd/tap/flux"
-brew "oarrabi/tap/mockpy"
+brew "nsomar/tap/mockpy"
 brew "run-llama/liteparse/llamaindex-liteparse"
 brew "arp-scan"
 brew "mactop"
@@ -74,27 +77,36 @@ brew "ffmpeg"
 brew "sshpass"
 brew "typst"
 brew "unar"
-brew "rbw"
+# Dropped casks and why:
+#   chromium        — disabled by Homebrew 2026-09-01 (fails macOS Gatekeeper)
+#   mullvad-browser — download blocked by the corporate proxy (403)
+#   vnc-viewer      — RealVNC removed the pinned dmg upstream (404)
+#   tigervnc        — SourceForge downloads are proxy-blocked (403)
+#   blackhole-2ch   — needs a sudo pkg installer; install by hand when needed
+#
+# App casks need an admin password on this machine (/Applications is root:admin),
+# so drawio, kdiff3 and turbovnc-viewer only install from an interactive shell.
 cask "android-platform-tools"
 cask "calibre"
-cask "chromium"
 cask "docker-desktop"
+cask "drawio"
 cask "font-hack-nerd-font"
 cask "font-jetbrains-mono-nerd-font"
 cask "inkscape"
 cask "iterm2"
-cask "meld"
-cask "mullvad-browser"
+cask "kdiff3"
+# cask "meld" — on hold: cdn download is blocked by the corporate proxy (403).
+# kdiff3 covers diffing/merging in the meantime.
 cask "notunes"
 cask "libreoffice"
-cask "vnc-viewer"
-cask "blackhole-2ch"
-cask "paragon-extfs"
+cask "turbovnc-viewer"
+cask "visual-studio-code"
 vscode "42crunch.vscode-openapi"
 vscode "bierner.markdown-mermaid"
 vscode "factory.factory-vscode-extension"
 vscode "fwcd.kotlin"
-vscode "github.copilot-chat"
+# github.copilot-chat is bundled with VS Code itself now: the CLI reports it as
+# already installed but never lists it, so declaring it is permanent false drift.
 vscode "github.vscode-github-actions"
 vscode "github.vscode-pull-request-github"
 vscode "hashicorp.terraform"
