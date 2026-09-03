@@ -9,6 +9,17 @@
 
 [core]
   hooksPath = ~/.config/git/hooks
+[diff]
+  tool = kdiff3
+[difftool]
+  prompt = false
+[merge]
+  tool = kdiff3
+[mergetool "kdiff3"]
+  path = /opt/homebrew/bin/kdiff3
+  trustExitCode = true
+[difftool "kdiff3"]
+  path = /opt/homebrew/bin/kdiff3
 [credential "https://github.com"]
 	helper = 
 	helper = !/opt/homebrew/bin/gh auth git-credential

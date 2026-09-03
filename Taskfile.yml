@@ -51,7 +51,10 @@ tasks:
   skills:test:
     desc: Run tests for skill shared libraries
     cmds:
-      - python3 -m pytest skills/_lib/puml_drawio/tests/ -v {{.CLI_ARGS}}
+      # via uv: no pytest in the Homebrew python, and no reason to install one
+      - >-
+        uv run --with pytest -- pytest
+        skills/_lib/puml_drawio/tests/ -v {{.CLI_ARGS}}
 
   mcp:install:
     desc: Distribute MCP servers from mcp/servers.json into all AI clients
@@ -68,15 +71,61 @@ tasks:
     cmds:
       - mkdir -p ~/.local/share/tessdata
       - |
+        # Download to a temp file and size-check before moving into place: a
+        # proxy error page would otherwise be cached forever as a valid file.
+        set -e
+        dir="$HOME/.local/share/tessdata"
+        base="https://github.com/tesseract-ocr/tessdata_best/raw/main"
+        min_bytes=5000000
+        rc=0
         for lang in eng swe nor dan; do
-          if [ ! -f ~/.local/share/tessdata/${lang}.traineddata ]; then
-            echo "Downloading ${lang}.traineddata..."
-            wget -q -O ~/.local/share/tessdata/${lang}.traineddata \
-              https://github.com/tesseract-ocr/tessdata_best/raw/main/${lang}.traineddata
-          else
+          target="$dir/${lang}.traineddata"
+          size=0
+          [ -f "$target" ] && size="$(wc -c < "$target")"
+          if [ "$size" -ge "$min_bytes" ]; then
             echo "${lang}.traineddata already present"
+            continue
+          fi
+          echo "Downloading ${lang}.traineddata..."
+          tmp="$(mktemp)"
+          if wget -q -O "$tmp" "$base/${lang}.traineddata" \
+             && [ "$(wc -c < "$tmp")" -ge "$min_bytes" ]; then
+            mv "$tmp" "$target"
+          else
+            rm -f "$tmp"
+            echo "FAILED: ${lang}.traineddata (blocked or truncated)" >&2
+            rc=1
           fi
         done
+        exit $rc
+
+  certs:zscaler:
+    desc: Re-export the corporate root CA for node-based tools
+    cmds:
+      - mkdir -p ~/.config/certs
+      - |
+        set -e
+        out="$HOME/.config/certs/zscaler.pem"
+        keychain=/Library/Keychains/System.keychain
+        security find-certificate -a -p -c "Zscaler" "$keychain" > "$out"
+        if [ ! -s "$out" ]; then
+          rm -f "$out"
+          echo "No corporate root CA found in the System keychain" >&2
+          exit 1
+        fi
+        count="$(grep -c 'BEGIN CERTIFICATE' "$out")"
+        echo "Exported $count certificate(s) to $out"
+
+  mise:install:
+    desc: Install mise-managed toolchains (dotnet, java) from global config
+    cmds:
+      - mise install
+      - mise ls
+
+  vscode:extensions:
+    desc: Install Brewfile-declared VS Code extensions (brew bundle cannot)
+    cmds:
+      - ./scripts/vscode-extensions.sh
 
   ocr:server:
     desc: Manage the EasyOCR Docker server (start|stop|status)
