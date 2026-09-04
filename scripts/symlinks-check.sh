@@ -2,6 +2,10 @@
 set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CERT_FILE="$HOME/.config/certs/zscaler.pem"
+
+# shellcheck source=scripts/links.sh
+. "$DOTFILES/scripts/links.sh"
 
 fail=0
 
@@ -26,18 +30,21 @@ check_link() {
   echo "OK: $dst"
 }
 
-check_link "$DOTFILES/shell/zshrc" "$HOME/.zshrc"
-check_link "$DOTFILES/shell/zprofile" "$HOME/.zprofile"
-check_link "$DOTFILES/git/gitconfig" "$HOME/.gitconfig"
-check_link "$DOTFILES/git/gitconfig_ey" "$HOME/Development/ey/gh-enterprise/.gitconfig_ey"
-check_link "$DOTFILES/git/gitconfig_private" "$HOME/Development/private/.gitconfig_private"
-check_link "$DOTFILES/hooks/commit-msg" "$HOME/.config/git/hooks/commit-msg"
-check_link "$DOTFILES/ssh/config" "$HOME/.ssh/config"
-check_link "$DOTFILES/act/actrc" "$HOME/.actrc"
+while IFS="$(printf '\t')" read -r src dst; do
+  [ -n "$dst" ] || continue
+  check_link "$src" "$dst"
+done <<EOF
+$(dotfiles_links "$DOTFILES")
+EOF
 
-for f in "$DOTFILES"/zsh-completions/_*; do
-  check_link "$f" "$HOME/.zsh/completions/$(basename "$f")"
-done
+# Not a symlink, but install.sh generates it and the shell exports
+# NODE_EXTRA_CA_CERTS from it, so a missing file breaks node-based tools.
+if [ -s "$CERT_FILE" ]; then
+  echo "OK: $CERT_FILE ($(grep -c 'BEGIN CERTIFICATE' "$CERT_FILE") certificate(s))"
+else
+  echo "MISSING: $CERT_FILE is empty or absent — run: task certs:zscaler"
+  fail=1
+fi
 
 if [ "$fail" -ne 0 ]; then
   exit 1

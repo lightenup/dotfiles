@@ -38,55 +38,27 @@ link_file() {
   ok "Linked $dst → $src"
 }
 
-# ── Shell ──────────────────────────────────────────────────────────────────
-info "Linking shell config"
-link_file "$DOTFILES/shell/zshrc"    "$HOME/.zshrc"
-link_file "$DOTFILES/shell/zprofile" "$HOME/.zprofile"
-
-# ── Git ────────────────────────────────────────────────────────────────────
-info "Linking git config"
-mkdir -p "$HOME/Development/ey/gh-enterprise"
-mkdir -p "$HOME/Development/private"
-mkdir -p "$HOME/Development/wilhem"
-link_file "$DOTFILES/git/gitconfig"         "$HOME/.gitconfig"
-link_file "$DOTFILES/git/gitconfig_ey"      "$HOME/Development/ey/gh-enterprise/.gitconfig_ey"
-link_file "$DOTFILES/git/gitconfig_private" "$HOME/Development/private/.gitconfig_private"
-link_file "$DOTFILES/git/gitconfig_wilhem"  "$HOME/Development/wilhem/.gitconfig_wilhem"
-
-# ── Git hooks ──────────────────────────────────────────────────────────────
-info "Installing global git hooks"
-mkdir -p "$HOME/.config/git/hooks"
-link_file "$DOTFILES/hooks/commit-msg" "$HOME/.config/git/hooks/commit-msg"
-
-# ── SSH ────────────────────────────────────────────────────────────────────
-info "Linking SSH config (keys are manual)"
-mkdir -p "$HOME/.ssh"
-link_file "$DOTFILES/ssh/config" "$HOME/.ssh/config"
-
-# ── Zsh completions ───────────────────────────────────────────────────────
-info "Linking zsh completions"
-mkdir -p "$HOME/.zsh/completions"
-for f in "$DOTFILES"/zsh-completions/_*; do
-  link_file "$f" "$HOME/.zsh/completions/$(basename "$f")"
-done
-
-# ── Act ────────────────────────────────────────────────────────────────────
-info "Linking act config"
-link_file "$DOTFILES/act/actrc" "$HOME/.actrc"
-
-# ── Task scripts ───────────────────────────────────────────────────────────
-# Early: later steps invoke these helpers.
+# ── Helper scripts ─────────────────────────────────────────────────────────
+# Early: later steps invoke these.
 info "Ensuring helper scripts are executable"
 chmod +x "$DOTFILES"/scripts/*.sh 2>/dev/null || true
 
-# ── mise ───────────────────────────────────────────────────────────────────
-info "Linking mise config"
-mkdir -p "$HOME/.config/mise"
-link_file "$DOTFILES/mise/config.toml" "$HOME/.config/mise/config.toml"
+# ── Symlinks ───────────────────────────────────────────────────────────────
+# shellcheck source=scripts/links.sh
+. "$DOTFILES/scripts/links.sh"
+
+info "Linking dotfiles (SSH keys stay manual)"
+while IFS="$(printf '\t')" read -r src dst; do
+  [ -n "$dst" ] || continue
+  mkdir -p "$(dirname "$dst")"
+  link_file "$src" "$dst"
+done <<EOF
+$(dotfiles_links "$DOTFILES")
+EOF
 
 # ── Corporate TLS root CA ──────────────────────────────────────────────────
-# Must run before Homebrew: `brew bundle` installs the VS Code extensions, and
-# their CDN is TLS-intercepted. node-based tools ignore the macOS keychain.
+# Before the VS Code extensions and Homebrew: the marketplace CDN is
+# TLS-intercepted, and node-based tools ignore the macOS keychain.
 info "Exporting corporate root CA for node-based tools"
 mkdir -p "$(dirname "$CERT_FILE")"
 if security find-certificate -a -p -c "Zscaler" /Library/Keychains/System.keychain > "$CERT_FILE" 2>/dev/null \
