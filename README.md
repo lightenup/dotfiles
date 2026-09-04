@@ -20,9 +20,15 @@ two passes, because the first one installs the tools the later steps use.
 Then, manually:
 
 1. Copy SSH keys to `~/.ssh/`.
-2. Install the app casks that need an admin password, from an interactive shell:
-   `brew install --cask drawio kdiff3 turbovnc-viewer`
+2. Install the casks that need a person at the keyboard, from an interactive
+   shell: `brew install --cask drawio kdiff3 turbovnc-viewer`. `/Applications`
+   is not user-writable, so the privilege manager has to elevate the app move,
+   and turbovnc-viewer's pkg installer asks for a password and a reason.
 3. `nvm install 20` if you need Node. dotnet and java come from mise.
+
+If Homebrew reports a tap as untrusted, `trusted: true` in the Brewfile has not
+been recorded yet (it only registers when bundle does the tapping, so an upstream
+rename slips through). Fix it with `brew trust --tap <user>/<tap>`.
 
 ## Corporate proxy notes
 

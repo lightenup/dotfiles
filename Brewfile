@@ -4,6 +4,8 @@ tap "fluxcd/tap", trusted: true
 # mockpy's tap: oarrabi/tap now redirects here. It ships a broken "codeimager"
 # cask (header token does not match the file name), so `brew tap` fails its audit
 # on a fresh machine; the clone still lands, so a second run succeeds.
+# `trusted: true` only records trust when bundle does the tapping, so after an
+# upstream rename brew ignores the tap until: brew trust --tap nsomar/tap
 tap "nsomar/tap", trusted: true
 tap "run-llama/liteparse", trusted: true
 brew "act"
@@ -84,8 +86,10 @@ brew "unar"
 #   tigervnc        — SourceForge downloads are proxy-blocked (403)
 #   blackhole-2ch   — needs a sudo pkg installer; install by hand when needed
 #
-# App casks need an admin password on this machine (/Applications is root:admin),
-# so drawio, kdiff3 and turbovnc-viewer only install from an interactive shell.
+# /Applications is root:admin here, so cask installs need an interactive
+# terminal: the privilege manager elevates app moves only when a user is present,
+# and pkg casks (turbovnc-viewer) ask for a password and a reason on top. Install
+# drawio, kdiff3 and turbovnc-viewer by hand; unattended runs fail on them.
 cask "android-platform-tools"
 cask "calibre"
 cask "docker-desktop"
