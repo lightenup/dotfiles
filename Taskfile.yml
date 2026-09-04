@@ -49,12 +49,10 @@ tasks:
       - ./scripts/skills-status.sh
 
   skills:test:
-    desc: Run tests for skill shared libraries
+    desc: Run tests for skill libraries and helpers
     cmds:
       # via uv: no pytest in the Homebrew python, and no reason to install one
-      - >-
-        uv run --with pytest -- pytest
-        skills/_lib/puml_drawio/tests/ -v {{.CLI_ARGS}}
+      - uv run --with pytest -- pytest skills/ -v {{.CLI_ARGS}}
 
   mcp:install:
     desc: Distribute MCP servers from mcp/servers.json into all AI clients
