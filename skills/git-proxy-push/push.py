@@ -163,6 +163,15 @@ def main():
 
     host, nwo = parse_remote(git("remote", "get-url", remote).strip())
     tracking = f"{remote}/{branch}"
+    if run(
+        ["git", "rev-parse", "--verify", "--quiet", tracking], check=False
+    ).returncode != 0:
+        die(
+            f"there is no {tracking}. This only pushes onto a branch that already "
+            f"exists on {host}: create it there first (`gh api` or an unblocked "
+            f"network), then `git fetch {remote}`."
+        )
+
     commits = git("rev-list", "--reverse", f"{tracking}..{branch}").split()
     if not commits:
         print(f"{tracking} is already up to date")

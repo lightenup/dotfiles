@@ -78,6 +78,42 @@ class TestParseIdent:
         assert ident["email"] == "bot@example.com"
 
 
+class TestReadCommit:
+    HEADERS = (
+        b"tree 8c7c2e6aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+        b"parent 5ecf5a4bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+        b"author A B <a@e.com> 1757000000 +0200\n"
+        b"committer A B <a@e.com> 1757000001 +0200\n"
+    )
+
+    def read(self, monkeypatch, raw):
+        monkeypatch.setattr(push, "git", lambda *a, **kw: raw)
+        return push.read_commit("deadbee")
+
+    def test_unsigned_commit(self, monkeypatch):
+        meta = self.read(monkeypatch, self.HEADERS + b"\nsubject line\n")
+        assert meta["signed"] is False
+        assert meta["tree"] == "8c7c2e6aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        assert meta["author"] == "A B <a@e.com> 1757000000 +0200"
+
+    def test_message_is_kept_verbatim(self, monkeypatch):
+        body = b"\nsubject\n\nbody paragraph\n\nCo-authored-by: x <x@e.com>\n"
+        meta = self.read(monkeypatch, self.HEADERS + body)
+        assert meta["message"] == body[1:].decode()
+
+    def test_gpg_signature_is_detected(self, monkeypatch):
+        raw = self.HEADERS + b"gpgsig -----BEGIN PGP SIGNATURE-----\n \n\nsubject\n"
+        assert self.read(monkeypatch, raw)["signed"] is True
+
+    def test_sha256_signature_is_detected(self, monkeypatch):
+        raw = self.HEADERS + b"gpgsig-sha256 -----BEGIN PGP SIGNATURE-----\n\nsubject\n"
+        assert self.read(monkeypatch, raw)["signed"] is True
+
+    def test_a_body_mentioning_gpgsig_is_not_a_signature(self, monkeypatch):
+        raw = self.HEADERS + b"\nfix: stop reading gpgsig headers wrong\n"
+        assert self.read(monkeypatch, raw)["signed"] is False
+
+
 class TestParseRawDiff:
     def test_modified_file_uses_the_destination_blob(self):
         line = ":100644 100644 56b5b29 a246598 M\t.Brewfile.ignore"

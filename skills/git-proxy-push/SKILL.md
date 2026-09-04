@@ -71,6 +71,8 @@ Each of these would break the identical-SHA guarantee, so the ref is left alone:
   those from an unblocked network.
 - **A non-fast-forward**, or a remote head that disagrees with the
   remote-tracking ref (fetch and reconcile first).
+- **A branch that does not exist on the remote yet.** Create it there first, then
+  `git fetch`; this only moves an existing ref forward.
 - **Any SHA mismatch** while replaying. Blobs, trees and commits are each
   verified against the local object, and the branch ref is only moved once the
   final commit matches local HEAD. Objects created before an abort are
