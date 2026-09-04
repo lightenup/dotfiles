@@ -3,6 +3,7 @@ set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CERT_FILE="$HOME/.config/certs/zscaler.pem"
+CA_BUNDLE="$HOME/.config/certs/ca-bundle.pem"
 
 # shellcheck source=scripts/links.sh
 . "$DOTFILES/scripts/links.sh"
@@ -37,14 +38,22 @@ done <<EOF
 $(dotfiles_links "$DOTFILES")
 EOF
 
-# Not a symlink, but install.sh generates it and the shell exports
-# NODE_EXTRA_CA_CERTS from it, so a missing file breaks node-based tools.
-if [ -s "$CERT_FILE" ]; then
-  echo "OK: $CERT_FILE ($(grep -c 'BEGIN CERTIFICATE' "$CERT_FILE") certificate(s))"
-else
-  echo "MISSING: $CERT_FILE is empty or absent — run: task certs:zscaler"
-  fail=1
-fi
+# Not symlinks, but install.sh generates both: the shell exports
+# NODE_EXTRA_CA_CERTS from the root CA, and CA-file-based tools (anything
+# bundling its own Python) are pointed at the combined bundle.
+check_generated_cert() {
+  local path="$1" hint="$2"
+
+  if [ -s "$path" ]; then
+    echo "OK: $path ($(grep -c 'BEGIN CERTIFICATE' "$path") certificate(s))"
+  else
+    echo "MISSING: $path is empty or absent — run: $hint"
+    fail=1
+  fi
+}
+
+check_generated_cert "$CERT_FILE" "task certs:zscaler"
+check_generated_cert "$CA_BUNDLE" "task certs:bundle"
 
 if [ "$fail" -ne 0 ]; then
   exit 1

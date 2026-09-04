@@ -98,21 +98,14 @@ tasks:
         exit $rc
 
   certs:zscaler:
-    desc: Re-export the corporate root CA for node-based tools
+    desc: Re-export the corporate root CA and rebuild the combined trust bundle
     cmds:
-      - mkdir -p ~/.config/certs
-      - |
-        set -e
-        out="$HOME/.config/certs/zscaler.pem"
-        keychain=/Library/Keychains/System.keychain
-        security find-certificate -a -p -c "Zscaler" "$keychain" > "$out"
-        if [ ! -s "$out" ]; then
-          rm -f "$out"
-          echo "No corporate root CA found in the System keychain" >&2
-          exit 1
-        fi
-        count="$(grep -c 'BEGIN CERTIFICATE' "$out")"
-        echo "Exported $count certificate(s) to $out"
+      - ./scripts/certs-export.sh all
+
+  certs:bundle:
+    desc: Rebuild ca-bundle.pem (Apple roots + corporate root) for CA-file tools
+    cmds:
+      - ./scripts/certs-export.sh bundle
 
   mise:install:
     desc: Install mise-managed toolchains (dotnet, java) from global config

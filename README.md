@@ -35,7 +35,25 @@ rename slips through). Fix it with `brew trust --tap <user>/<tap>`.
 The corporate proxy terminates TLS for some hosts. curl, git and Homebrew trust
 the keychain, node-based tools do not, so `install.sh` exports the root CA to
 `~/.config/certs/zscaler.pem` and `zprofile` points `NODE_EXTRA_CA_CERTS` at it.
-Regenerate with `task certs:zscaler`.
+Regenerate both cert artifacts with `task certs:zscaler`.
+
+Python ignores the keychain too, and apps that bundle their own CPython verify
+against a vendored `certifi`, so Hugging Face calls fail with
+`CERTIFICATE_VERIFY_FAILED`. The knob for those is `SSL_CERT_FILE` or
+`REQUESTS_CA_BUNDLE`, but each one *replaces* the trust store rather than
+extending it, so `~/.config/certs/ca-bundle.pem` carries Apple's roots and the
+corporate root together. Point the individual tool at that file instead of
+exporting the variables globally: one stale bundle would otherwise break every
+Python tool at once. Rebuild it with `task certs:bundle` after a macOS update
+refreshes `/etc/ssl/cert.pem`, or after the proxy rotates its root.
+
+Tools configured this way so far:
+
+- **oMLX** — Settings → Network → CA bundle →
+  `/Users/<you>/.config/certs/ca-bundle.pem`. Applies live, no restart; it sets
+  both variables for the server process. The path must be absolute, since oMLX
+  does not expand `~`. Its `hf_xet` downloader needs nothing: that one is Rust
+  and verifies against the keychain.
 
 Homebrew scrubs `NODE_EXTRA_CA_CERTS` from its own environment, so
 `brew bundle` can never install the VS Code extensions here. `install.sh` runs
@@ -83,6 +101,8 @@ task brew:reconcile
 task symlinks:check
 task skills:install
 task skills:status
+task certs:zscaler
+task certs:bundle
 ```
 
 ## Drift detection

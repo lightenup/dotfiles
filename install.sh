@@ -59,15 +59,10 @@ EOF
 # ── Corporate TLS root CA ──────────────────────────────────────────────────
 # Before the VS Code extensions and Homebrew: the marketplace CDN is
 # TLS-intercepted, and node-based tools ignore the macOS keychain.
-info "Exporting corporate root CA for node-based tools"
-mkdir -p "$(dirname "$CERT_FILE")"
-if security find-certificate -a -p -c "Zscaler" /Library/Keychains/System.keychain > "$CERT_FILE" 2>/dev/null \
-   && [ -s "$CERT_FILE" ]; then
+info "Exporting corporate root CA and combined trust bundle"
+"$DOTFILES/scripts/certs-export.sh" all || warn "Corporate CA export incomplete — see above"
+if [ -s "$CERT_FILE" ]; then
   export NODE_EXTRA_CA_CERTS="$CERT_FILE"
-  ok "Exported $(grep -c 'BEGIN CERTIFICATE' "$CERT_FILE") certificate(s) to $CERT_FILE"
-else
-  rm -f "$CERT_FILE"
-  warn "No corporate root CA found in the System keychain — skipping"
 fi
 
 # ── VS Code extensions ─────────────────────────────────────────────────────
