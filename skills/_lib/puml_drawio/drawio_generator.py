@@ -8,7 +8,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import icons as _icons
+from . import elk_layout as _elk
 from .puml_parser import (
+    _C4_ELEMENTS,
     Boundary,
     Component,
     Diagram,
@@ -23,6 +25,7 @@ FALLBACK_ICONS: dict[str, str] = {
     "System_Ext": "img/lib/azure2/general/Module.svg",
     "System": "img/lib/azure2/general/Module.svg",
     "Container": "img/lib/azure2/general/Module.svg",
+    "Component": "img/lib/azure2/general/Module.svg",
     "Person": "img/lib/azure2/identity/Groups.svg",
 }
 
@@ -98,27 +101,56 @@ def _icon_path(comp: Component) -> str:
         return embedded
     if comp.sprite and comp.sprite in ICON_MAP:
         return ICON_MAP[comp.sprite]
-    return FALLBACK_ICONS.get(comp.comp_type, "")
+    if comp.comp_type in FALLBACK_ICONS:
+        return FALLBACK_ICONS[comp.comp_type]
+    # Fall back on the C4 base kind so Component/*Db/*Queue/_Ext variants
+    # (e.g. ComponentQueue_Ext) still get an icon.
+    base = _C4_ELEMENTS.get(comp.comp_type)
+    return FALLBACK_ICONS.get(base, "") if base else ""
+
+
+def _wrapped_line_count(text: str, width_px: float, font_px: float) -> int:
+    """Estimate how many rendered lines `text` needs at `font_px` in `width_px`.
+
+    draw.io wraps on width, so counting explicit newlines alone badly
+    under-estimates height for long single-line descriptions.
+    """
+    if not text:
+        return 0
+    usable = max(width_px - 16, 40)
+    # ~0.55em average glyph advance for the sans stack draw.io uses.
+    chars_per_line = max(int(usable / (font_px * 0.55)), 8)
+    total = 0
+    for line in text.replace("\\n", "\n").split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        total += max(1, -(-len(line) // chars_per_line))
+    return total
 
 
 def _comp_height(comp: Component) -> int:
     has_icon = bool(_icon_path(comp))
-    desc_lines = 0
+    width = _comp_width(comp)
+
+    name_h = _wrapped_line_count(comp.name, width, 12) * 15
+    tech_h = 12 if comp.technology else 0
+
+    desc_h = 0
     if MAX_DESC_LINES > 0 and comp.description:
         raw = comp.description.replace("\\n", "\n")
         lines = [l.strip() for l in raw.split("\n") if l.strip() and not all(c in "-─=" for c in l.strip())]
-        desc_lines = min(len(lines), MAX_DESC_LINES)
-    desc_h = desc_lines * 10 if desc_lines else 0
+        lines = lines[:MAX_DESC_LINES]
+        if lines:
+            desc_text = " | ".join(lines)
+            wrapped = _wrapped_line_count(desc_text, width, 8)
+            # Honour the cap on rendered lines, not just on source lines.
+            desc_h = min(wrapped, MAX_DESC_LINES * 2) * 10
+
     if has_icon:
-        base = 6 + ICON_SIZE + 4 + 14 + desc_h
-        if comp.technology:
-            base += 12
-        return max(COMP_H, base)
-    else:
-        base = 14 + desc_h
-        if comp.technology:
-            base += 12
-        return max(52, base)
+        # icon occupies y=4 .. 4+ICON_SIZE; text stacks beneath it
+        return max(COMP_H, 4 + ICON_SIZE + 6 + name_h + tech_h + desc_h + 8)
+    return max(52, 8 + name_h + tech_h + desc_h + 8)
 
 
 MAX_COMP_W = 230
@@ -138,8 +170,13 @@ def _comp_style(
     has_icon: bool,
     bg_color: str = "#FFFFFF",
     font_color: str = "#333333",
+    border_color: str = "",
+    border_thickness: str = "",
+    border_style: str = "",
 ) -> str:
-    if bg_color != "#FFFFFF":
+    if border_color:
+        stroke_color = border_color
+    elif bg_color != "#FFFFFF":
         stroke_color = bg_color
     else:
         stroke_color = "#CCCCCC"
@@ -160,6 +197,12 @@ def _comp_style(
         "glass=0",
         "gradientColor=none",
     ]
+    if border_thickness:
+        parts.append(f"strokeWidth={border_thickness}")
+    if border_style == "dashed":
+        parts.append("dashed=1")
+    elif border_style == "dotted":
+        parts.extend(["dashed=1", "dashPattern=1 3"])
     return ";".join(parts) + ";"
 
 
@@ -219,8 +262,8 @@ def _edge_label(rel: Relationship) -> str:
     if not text:
         return ""
 
-    if len(text) > 28:
-        text = text[:26] + "..."
+    # No truncation: ELK reserves space for the label's real size, so it no
+    # longer has to be clipped to avoid collisions.
     return html.escape(text)
 
 
@@ -232,489 +275,94 @@ class _Rect:
     h: float = 0.0
 
 
-class _LayoutEngine:
-    """Layered layout using Lay_D across nesting levels and Lay_R within rows."""
+def _path_midpoint(pts: list[tuple[float, float]]) -> tuple[float, float]:
+    """Point at half the arc length — where draw.io anchors an edge label."""
+    if not pts:
+        return (0.0, 0.0)
+    if len(pts) == 1:
+        return pts[0]
+    seg_len = [
+        ((pts[i + 1][0] - pts[i][0]) ** 2 + (pts[i + 1][1] - pts[i][1]) ** 2) ** 0.5
+        for i in range(len(pts) - 1)
+    ]
+    total = sum(seg_len)
+    if total <= 0:
+        return pts[0]
+    half = total / 2
+    run = 0.0
+    for i, ln in enumerate(seg_len):
+        if run + ln >= half:
+            t = (half - run) / ln if ln else 0.0
+            return (
+                pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t,
+                pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t,
+            )
+        run += ln
+    return pts[-1]
 
-    def __init__(self, diagram: Diagram):
-        self.d = diagram
-        self.rects: dict[str, _Rect] = {}
-        self._comp_map = {c.id: c for c in diagram.components}
-        self._bound_map = {b.id: b for b in diagram.boundaries}
-        self._children: dict[str | None, list[tuple[str, str]]] = {}
-        self._processed: set[str] = set()
 
-        for c in diagram.components:
-            self._children.setdefault(c.parent_boundary, []).append(("comp", c.id))
-        for b in diagram.boundaries:
-            self._children.setdefault(b.parent_boundary, []).append(("bound", b.id))
+def _elk_label_size(rel: Relationship) -> tuple[float, float]:
+    """Reserve space for the label's true size so ELK routes clear of it."""
+    text = _edge_label(rel)
+    if not text:
+        return (0.0, 0.0)
+    w = len(text) * 5.0
+    if w <= 190.0:
+        return (w, 12.0)
+    return (190.0, 12.0 * (-(-w // 190.0)))
 
-        self._right_of: dict[str, list[str]] = {}
-        self._below_of: dict[str, list[str]] = {}
-        for h in diagram.layout_hints:
-            if h.hint_type == "R":
-                self._right_of.setdefault(h.source_id, []).append(h.target_id)
-            elif h.hint_type == "D":
-                self._below_of.setdefault(h.source_id, []).append(h.target_id)
 
-        self._parent_of: dict[str, str | None] = {}
-        for c in diagram.components:
-            self._parent_of[c.id] = c.parent_boundary
-        for b in diagram.boundaries:
-            self._parent_of[b.id] = b.parent_boundary
+class _ElkLayout:
+    """Adapter presenting an ElkResult through the interface generate() expects.
 
-        self._bidi_pairs: set[tuple[str, str]] = set()
-        rel_pairs: dict[tuple[str, str], int] = {}
-        for rel in diagram.relationships:
-            pair = (rel.source_id, rel.target_id)
-            rev = (rel.target_id, rel.source_id)
-            rel_pairs[pair] = rel_pairs.get(pair, 0) + 1
-            if rev in rel_pairs:
-                self._bidi_pairs.add(pair)
-                self._bidi_pairs.add(rev)
+    Node geometry stays parent-relative (draw.io's cell model); centres and
+    routes are exposed in absolute coordinates.
+    """
+
+    def __init__(self, diagram: Diagram, overrides: dict | None = None):
+        self.diagram = diagram
+        self._result = _elk.layout(
+            diagram,
+            overrides=overrides,
+            size_of=lambda c: (float(_comp_width(c)), float(_comp_height(c))),
+            label_size_of=_elk_label_size,
+            boundary_header=float(BOUND_HEADER),
+            boundary_pad=float(BOUND_PAD),
+        )
+        self.rects: dict[str, _Rect] = {
+            nid: _Rect(x=x, y=y, w=w, h=h)
+            for nid, (x, y, w, h) in self._result.nodes.items()
+        }
+        seen = {(r.source_id, r.target_id) for r in diagram.relationships}
+        self._bidi = {(s, t) for s, t in seen if (t, s) in seen}
 
     def is_bidirectional(self, src: str, tgt: str) -> bool:
-        return (src, tgt) in self._bidi_pairs
+        return (src, tgt) in self._bidi or (tgt, src) in self._bidi
 
-    def _all_descendants(self, bid: str) -> set[str]:
-        result: set[str] = set()
-        for ctype, cid in self._children.get(bid, []):
-            result.add(cid)
-            if ctype == "bound":
-                result |= self._all_descendants(cid)
-        return result
-
-    def _resolve_hint_target(self, target_id: str, scope_ids: set[str]) -> str | None:
-        if target_id in scope_ids:
-            return target_id
-        cur = target_id
-        while cur in self._parent_of:
-            p = self._parent_of[cur]
-            if p in scope_ids:
-                return p
-            if p is None:
-                break
-            cur = p
-        return None
-
-    def _assign_rows(self, child_ids: set[str], parent_key: str | None = None) -> dict[int, list[str]]:
-        descendant_of: dict[str, set[str]] = {}
-        for cid in child_ids:
-            if cid in self._bound_map:
-                descendant_of[cid] = self._all_descendants(cid)
-            else:
-                descendant_of[cid] = set()
-
-        row_of: dict[str, int] = {cid: 0 for cid in child_ids}
-
-        effective_below: dict[str, set[str]] = {}
-        all_relevant = child_ids.copy()
-        for cid in child_ids:
-            all_relevant |= descendant_of.get(cid, set())
-
-        for src_id in all_relevant:
-            for tgt_id in self._below_of.get(src_id, []):
-                src_resolved = self._resolve_hint_target(src_id, child_ids)
-                tgt_resolved = self._resolve_hint_target(tgt_id, child_ids)
-                if src_resolved and tgt_resolved and src_resolved != tgt_resolved:
-                    effective_below.setdefault(src_resolved, set()).add(tgt_resolved)
-
-        if parent_key is None:
-            def _can_reach(start: str, end: str) -> bool:
-                visited: set[str] = set()
-                stack = [start]
-                while stack:
-                    cur = stack.pop()
-                    if cur == end:
-                        return True
-                    if cur in visited:
-                        continue
-                    visited.add(cur)
-                    stack.extend(effective_below.get(cur, set()))
-                return False
-
-            for rel in self.d.relationships:
-                if rel.direction in ("L", "R", "U"):
-                    continue
-                src_resolved = self._resolve_hint_target(rel.source_id, child_ids)
-                tgt_resolved = self._resolve_hint_target(rel.target_id, child_ids)
-                if (src_resolved and tgt_resolved
-                        and src_resolved != tgt_resolved
-                        and not _can_reach(tgt_resolved, src_resolved)):
-                    effective_below.setdefault(src_resolved, set()).add(tgt_resolved)
-
-        changed = True
-        while changed:
-            changed = False
-            for src, targets in effective_below.items():
-                for tgt in targets:
-                    needed = row_of[src] + 1
-                    if row_of[tgt] < needed:
-                        row_of[tgt] = needed
-                        changed = True
-
-        rows: dict[int, list[str]] = {}
-        for cid, rn in row_of.items():
-            rows.setdefault(rn, []).append(cid)
-        return rows
-
-    def _order_row(self, ids: list[str]) -> list[str]:
-        if len(ids) <= 1:
-            return ids
-        id_set = set(ids)
-
-        effective_right: dict[str, list[str]] = {}
-        for src in ids:
-            for tgt in self._right_of.get(src, []):
-                resolved = self._resolve_hint_target(tgt, id_set)
-                if resolved and resolved != src:
-                    effective_right.setdefault(src, []).append(resolved)
-            if src in self._bound_map:
-                for desc in self._all_descendants(src):
-                    for tgt in self._right_of.get(desc, []):
-                        resolved = self._resolve_hint_target(tgt, id_set)
-                        if resolved and resolved != src:
-                            effective_right.setdefault(src, []).append(resolved)
-
-        chain_member: set[str] = set()
-        for src in ids:
-            for tgt in effective_right.get(src, []):
-                if tgt in id_set:
-                    chain_member.add(tgt)
-
-        source_order = [c.id for c in self.d.components] + [b.id for b in self.d.boundaries]
-        chain_starts = [s for s in source_order if s in id_set and s not in chain_member]
-
-        if not chain_starts and effective_right:
-            for sid in source_order:
-                if sid in id_set:
-                    chain_starts = [sid]
-                    break
-            if not chain_starts:
-                chain_starts = [ids[0]]
-
-        chains: list[list[str]] = []
-        for start in chain_starts:
-            chain = [start]
-            cur = start
-            while True:
-                nxt = [t for t in effective_right.get(cur, []) if t in id_set and t not in set(chain)]
-                if not nxt:
-                    break
-                chain.append(nxt[0])
-                cur = nxt[0]
-            chains.append(chain)
-
-        used: set[str] = set()
-        result: list[str] = []
-        for chain in chains:
-            for cid in chain:
-                if cid not in used:
-                    result.append(cid)
-                    used.add(cid)
-        remaining = [cid for cid in source_order if cid in id_set and cid not in used]
-        result.extend(remaining)
-        return result
-
-    def _row_width(self, ordered: list[str]) -> float:
-        if not ordered:
-            return 0.0
-        total = sum(self.rects[cid].w for cid in ordered)
-        total += H_GAP * (len(ordered) - 1)
-        return total
-
-    def compute(self):
-        for c in self.d.components:
-            self.rects[c.id] = _Rect(w=_comp_width(c), h=_comp_height(c))
-        for b in self.d.boundaries:
-            self._layout_boundary(b.id)
-        self._normalize_row_heights()
-        self._processed.clear()
-        for b in self.d.boundaries:
-            self._layout_boundary(b.id)
-        self._layout_root()
-
-    def _normalize_row_heights(self):
-        for parent_key in list(self._children.keys()):
-            children = self._children.get(parent_key, [])
-            if not children:
-                continue
-            child_ids = {cid for _, cid in children}
-            child_map = {cid: ct for ct, cid in children}
-            rows = self._assign_rows(child_ids, parent_key)
-            for row_ids in rows.values():
-                if len(row_ids) <= 1:
-                    continue
-                comps = [c for c in row_ids if child_map[c] == "comp"]
-                bounds = [c for c in row_ids if child_map[c] == "bound"]
-                for group in (comps, bounds):
-                    if len(group) <= 1:
-                        continue
-                    heights = sorted(self.rects[cid].h for cid in group)
-                    target_idx = min(len(heights) - 1, int(len(heights) * 0.75))
-                    target_h = heights[target_idx]
-                    for cid in group:
-                        if self.rects[cid].h < target_h:
-                            self.rects[cid].h = target_h
-
-    def _layout_container(self, parent_key: str | None, start_y: float) -> tuple[float, float]:
-        children = self._children.get(parent_key, [])
-        if not children:
-            return 0.0, 0.0
-
-        child_ids = {cid for _, cid in children}
-        rows = self._assign_rows(child_ids, parent_key)
-
-        row_data: list[tuple[list[str], float]] = []
-        max_row_w = 0.0
-        for row_num in sorted(rows.keys()):
-            ordered = self._order_row(rows[row_num])
-            rw = self._row_width(ordered)
-            row_data.append((ordered, rw))
-            max_row_w = max(max_row_w, rw)
-
-        y = start_y
-        max_right = 0.0
-        for ordered, rw in row_data:
-            offset_x = BOUND_PAD + (max_row_w - rw) / 2.0
-            x = offset_x
-            row_h = 0.0
-            for cid in ordered:
-                r = self.rects[cid]
-                r.x = x
-                r.y = y
-                x += r.w + H_GAP
-                row_h = max(row_h, r.h)
-            max_right = max(max_right, x - H_GAP + BOUND_PAD)
-            y += row_h + V_GAP
-
-        return max_right, y - start_y - V_GAP
-
-    def _layout_boundary(self, bid: str):
-        if bid in self._processed:
-            return
-        for ctype, cid in self._children.get(bid, []):
-            if ctype == "bound":
-                self._layout_boundary(cid)
-
-        content_w, content_h = self._layout_container(bid, BOUND_HEADER + BOUND_PAD + 4)
-
-        b = self._bound_map[bid]
-        label_w = len(b.label) * 9 + 40
-        total_w = max(content_w, 280, label_w)
-        total_h = max(BOUND_HEADER + BOUND_PAD + content_h + BOUND_PAD, 110)
-        self.rects[bid] = _Rect(w=total_w, h=total_h)
-        self._processed.add(bid)
+    def route(self, src: str, tgt: str):
+        return self._result.edges.get(f"{src}->{tgt}")
 
     def _abs_center(self, node_id: str) -> tuple[float, float]:
-        r = self.rects.get(node_id)
-        if not r:
-            return 0.0, 0.0
-        cx, cy = r.x + r.w / 2, r.y + r.h / 2
-        pid = self._parent_of.get(node_id)
-        while pid:
-            pr = self.rects.get(pid)
-            if pr:
-                cx += pr.x
-                cy += pr.y
-            pid = self._parent_of.get(pid)
-        return cx, cy
+        if node_id not in self._result.nodes:
+            return (0.0, 0.0)
+        x, y, w, h = self._result.abs_rect(node_id)
+        return (x + w / 2, y + h / 2)
 
-    def _barycenter_x(self, node_id: str) -> float | None:
-        xs: list[float] = []
-        descendants: set[str] = set()
-        if node_id in self._bound_map:
-            descendants = self._all_descendants(node_id)
-        descendants.add(node_id)
+    def abs_rect(self, node_id: str):
+        return self._result.abs_rect(node_id)
 
-        for rel in self.d.relationships:
-            if rel.source_id in descendants:
-                tx, _ = self._abs_center(rel.target_id)
-                xs.append(tx)
-            if rel.target_id in descendants:
-                sx, _ = self._abs_center(rel.source_id)
-                xs.append(sx)
-        return sum(xs) / len(xs) if xs else None
-
-    def _barycenter_sort(self, ids: list[str]) -> list[str]:
-        with_bc: list[tuple[float, str]] = []
-        without_bc: list[str] = []
-        for cid in ids:
-            bc = self._barycenter_x(cid)
-            if bc is not None:
-                with_bc.append((bc, cid))
-            else:
-                without_bc.append(cid)
-        with_bc.sort(key=lambda t: t[0])
-        return [cid for _, cid in with_bc] + without_bc
-
-    def _target_depth(self, node_id: str) -> int:
-        depth = 0
-        pid = self._parent_of.get(node_id)
-        while pid:
-            depth += 1
-            pid = self._parent_of.get(pid)
-        return depth
-
-    def _detect_satellites(self) -> dict[str, str]:
-        root_comps = {
-            cid for ctype, cid in self._children.get(None, [])
-            if ctype == "comp"
-        }
-        if not root_comps:
-            return {}
-
-        max_y = 0.0
-        for r in self.rects.values():
-            max_y = max(max_y, r.y + r.h)
-        if max_y < 600:
-            return {}
-
-        satellites: dict[str, str] = {}
-        for cid in root_comps:
-            neighbours: list[str] = []
-            for rel in self.d.relationships:
-                if rel.source_id == cid:
-                    neighbours.append(rel.target_id)
-                elif rel.target_id == cid:
-                    neighbours.append(rel.source_id)
-            if not neighbours:
-                continue
-
-            all_deep = all(self._target_depth(n) >= 1 for n in neighbours)
-            if not all_deep:
-                continue
-
-            ys = [self._abs_center(n)[1] for n in neighbours]
-            avg_y = sum(ys) / len(ys)
-            min_y = min(ys)
-
-            if min_y < max_y * 0.5:
-                continue
-            if avg_y < max_y * 0.6:
-                continue
-
-            boundary_counts: dict[str, int] = {}
-            for n in neighbours:
-                pid = self._parent_of.get(n)
-                outermost = pid
-                while pid:
-                    outermost = pid
-                    pid = self._parent_of.get(pid)
-                if outermost:
-                    boundary_counts[outermost] = boundary_counts.get(outermost, 0) + 1
-
-            if boundary_counts:
-                best_boundary = max(boundary_counts, key=lambda b: boundary_counts[b])
-                satellites[cid] = best_boundary
-
-        return satellites
-
-    def _layout_root(self):
-        children = self._children.get(None, [])
-        if not children:
-            return
-
-        child_ids = {cid for _, cid in children}
-        child_map = {cid: ct for ct, cid in children}
-
-        satellites = self._detect_satellites()
-        non_satellite_ids = child_ids - set(satellites.keys())
-
-        rows = self._assign_rows(non_satellite_ids, None)
-
-        root_v_gap = 44
-
-        def _place_rows(row_orderer):
-            sub_rows: list[tuple[list[str], float]] = []
-            y = 60.0
-            for row_num in sorted(rows.keys()):
-                ids_in_row = rows[row_num]
-                comps_in_row = [cid for cid in ids_in_row if child_map.get(cid) != "bound"]
-                bounds_in_row = [cid for cid in ids_in_row if child_map.get(cid) == "bound"]
-
-                if comps_in_row:
-                    ordered = row_orderer(comps_in_row)
-                    sub_rows.append((ordered, y))
-                    row_h = max(self.rects[cid].h for cid in ordered)
-                    y += row_h + root_v_gap
-
-                if bounds_in_row:
-                    if comps_in_row:
-                        y += 10
-                    ordered = row_orderer(bounds_in_row)
-                    sub_rows.append((ordered, y))
-                    row_h = max(self.rects[cid].h for cid in ordered)
-                    y += row_h + root_v_gap
-
-            max_rw = 0.0
-            for ordered, _ in sub_rows:
-                rw = self._row_width(ordered)
-                max_rw = max(max_rw, rw)
-
-            margin_x = 30.0
-            for ordered, row_y in sub_rows:
-                rw = self._row_width(ordered)
-                offset_x = margin_x + (max_rw - rw) / 2.0
-                x = offset_x
-                for cid in ordered:
-                    r = self.rects[cid]
-                    r.x = x
-                    r.y = row_y
-                    x += r.w + H_GAP
-
-        _place_rows(self._order_row)
-
-        def _bc_order(ids: list[str]) -> list[str]:
-            base = self._order_row(ids)
-            return self._barycenter_sort(base)
-
-        _place_rows(_bc_order)
-
-        if satellites:
-            self._place_satellites(satellites)
-
-    def _place_satellites(self, satellites: dict[str, str]):
-        by_boundary: dict[str, list[str]] = {}
-        for sat_id, bound_id in satellites.items():
-            by_boundary.setdefault(bound_id, []).append(sat_id)
-
-        for bound_id, sat_ids in by_boundary.items():
-            br = self.rects.get(bound_id)
-            if not br:
-                continue
-
-            bound_right_x = br.x + br.w + H_GAP
-
-            def _avg_target_y(sid: str) -> float:
-                neighbours = []
-                for rel in self.d.relationships:
-                    if rel.source_id == sid:
-                        neighbours.append(rel.target_id)
-                    elif rel.target_id == sid:
-                        neighbours.append(rel.source_id)
-                if not neighbours:
-                    return br.y + br.h / 2
-                ys = [self._abs_center(n)[1] for n in neighbours]
-                return sum(ys) / len(ys)
-
-            sat_ids.sort(key=_avg_target_y)
-
-            total_h = sum(self.rects[s].h for s in sat_ids) + V_GAP * (len(sat_ids) - 1)
-            avg_y = sum(_avg_target_y(s) for s in sat_ids) / len(sat_ids)
-            start_y = avg_y - total_h / 2
-
-            x = bound_right_x
-            y = start_y
-            for sat_id in sat_ids:
-                sr = self.rects[sat_id]
-                sr.x = x
-                sr.y = y
-                y += sr.h + V_GAP
+    def compute(self):     # call-site compatibility
+        return
 
 
-def generate(diagram: Diagram) -> str:
-    """Generate draw.io XML string from a parsed Diagram model."""
-    layout = _LayoutEngine(diagram)
+def generate(diagram: Diagram, overrides: dict | None = None) -> str:
+    """Generate draw.io XML from a parsed Diagram.
+
+    `overrides` is the optional hand-polish sidecar (see
+    elk_layout.load_overrides); anything it does not mention keeps the
+    computed layout.
+    """
+    layout = _ElkLayout(diagram, overrides)
     layout.compute()
 
     mxfile = ET.Element("mxfile")
@@ -792,20 +440,39 @@ def generate(diagram: Diagram) -> str:
 
         bg_color = "#FFFFFF"
         font_color = "#333333"
+        border_color = border_thickness = border_style = ""
         if comp.tags and tag_styles:
+            # Merge per property, first tag that sets one wins. This lets a
+            # border-only overlay tag (build state) sit in front of a fill tag
+            # (ownership) — e.g. $tags="gap+ey" — without masking the fill.
             for tag in comp.tags:
-                if tag in tag_styles:
-                    ts = tag_styles[tag]
-                    if ts.bg_color:
-                        bg_color = ts.bg_color
-                    if ts.font_color:
-                        font_color = ts.font_color if ts.font_color != "white" else "#FFFFFF"
-                    break
+                ts = tag_styles.get(tag)
+                if ts is None:
+                    continue
+                if ts.bg_color and bg_color == "#FFFFFF":
+                    bg_color = ts.bg_color
+                if ts.font_color and font_color == "#333333":
+                    font_color = ts.font_color if ts.font_color != "white" else "#FFFFFF"
+                if ts.border_color and not border_color:
+                    border_color = ts.border_color
+                if ts.border_thickness and not border_thickness:
+                    border_thickness = ts.border_thickness
+                if ts.border_style and not border_style:
+                    border_style = ts.border_style
+            # C4 semantics: a tagged element with no explicit $bgColor still
+            # takes the default C4 element fill, not the untagged white.
+            if bg_color == "#FFFFFF" and any(t in tag_styles for t in comp.tags):
+                bg_color = "#438DD5"
+                if font_color == "#333333":
+                    font_color = "#FFFFFF"
 
         cell = ET.SubElement(root, "mxCell")
         cell.set("id", cell_id)
         cell.set("value", _html_value(comp, tag_styles))
-        cell.set("style", _comp_style(bool(icon_path), bg_color, font_color))
+        cell.set("style", _comp_style(
+            bool(icon_path), bg_color, font_color,
+            border_color, border_thickness, border_style,
+        ))
         cell.set("vertex", "1")
         parent_id = f"b_{comp.parent_boundary}" if comp.parent_boundary else "1"
         cell.set("parent", parent_id)
@@ -882,11 +549,18 @@ def generate(diagram: Diagram) -> str:
             legend_y = max_bottom + 40
             legend_x = 30.0
             swatch_w, swatch_h = 14, 14
-            entry_w = 180
-            cols = 4
             row_h = 22
 
             ordered_tags = [t for t in tag_styles if t in used_tags]
+
+            # Legend labels never wrap, so size the column to the longest text
+            # and drop the column count until the whole row stays reasonable.
+            longest = max(
+                (len(tag_styles[t].legend_text or t) for t in ordered_tags),
+                default=0,
+            )
+            entry_w = max(180.0, longest * 9 * 0.55 + swatch_w + 20)
+            cols = max(1, min(4, int(1400 / entry_w)))
 
             for i, tag_name in enumerate(ordered_tags):
                 ts = tag_styles[tag_name]
@@ -898,11 +572,21 @@ def generate(diagram: Diagram) -> str:
                 swatch = ET.SubElement(root, "mxCell")
                 swatch.set("id", f"legend_sw_{i}")
                 swatch.set("value", "")
-                swatch.set(
-                    "style",
-                    f"rounded=1;whiteSpace=wrap;html=1;fillColor={ts.bg_color or '#CCCCCC'};"
-                    f"strokeColor={ts.bg_color or '#CCCCCC'};arcSize=20;",
+                # Mirror the node encoding: fill = ownership, border = state.
+                # A border-only tag gets a neutral fill so its border reads.
+                sw_fill = ts.bg_color or ("#FFFFFF" if ts.border_color else "#CCCCCC")
+                sw_stroke = ts.border_color or ts.bg_color or "#CCCCCC"
+                sw_style = (
+                    f"rounded=1;whiteSpace=wrap;html=1;fillColor={sw_fill};"
+                    f"strokeColor={sw_stroke};arcSize=20;"
                 )
+                if ts.border_thickness:
+                    sw_style += f"strokeWidth={ts.border_thickness};"
+                if ts.border_style == "dashed":
+                    sw_style += "dashed=1;"
+                elif ts.border_style == "dotted":
+                    sw_style += "dashed=1;dashPattern=1 3;"
+                swatch.set("style", sw_style)
                 swatch.set("vertex", "1")
                 swatch.set("parent", "1")
                 sg = ET.SubElement(swatch, "mxGeometry")
@@ -980,80 +664,6 @@ def generate(diagram: Diagram) -> str:
         _target_fanin.setdefault(rel.target_id, []).append(rel.source_id)
         _source_fanout.setdefault(rel.source_id, []).append(rel.target_id)
 
-    def _port_hints(
-        src_id: str, tgt_id: str
-    ) -> tuple[float | None, float | None, float | None, float | None]:
-        if not _share_boundary(src_id, tgt_id):
-            sd, td = _boundary_depth_edge(src_id), _boundary_depth_edge(tgt_id)
-            if abs(sd - td) > 1:
-                return None, None, None, None
-
-        sx, sy = _abs_center(src_id)
-        tx, ty = _abs_center(tgt_id)
-        dx, dy = tx - sx, ty - sy
-        adx, ady = abs(dx), abs(dy)
-        if adx < 1 and ady < 1:
-            return None, None, None, None
-
-        exit_x_val: float | None = None
-        exit_y_val: float | None = None
-        entry_x_val: float | None = None
-        entry_y_val: float | None = None
-
-        targets_for_src = _source_fanout.get(src_id, [])
-        if len(targets_for_src) >= 3:
-            tgt_positions = sorted(
-                [(_abs_center(t)[0], t) for t in targets_for_src],
-                key=lambda p: p[0],
-            )
-            tgt_ids_sorted = [t for _, t in tgt_positions]
-            if tgt_id in tgt_ids_sorted:
-                idx = tgt_ids_sorted.index(tgt_id)
-                n = len(tgt_ids_sorted)
-                spread = 0.15 + 0.7 * (idx / max(n - 1, 1))
-                if ady >= adx:
-                    exit_x_val = round(spread, 2)
-                    exit_y_val = 1.0 if dy > 0 else 0.0
-                else:
-                    exit_y_val = round(spread, 2)
-                    exit_x_val = 1.0 if dx > 0 else 0.0
-
-        sources_for_tgt = _target_fanin.get(tgt_id, [])
-        if len(sources_for_tgt) >= 3:
-            src_positions = sorted(
-                [(_abs_center(s)[0], s) for s in sources_for_tgt],
-                key=lambda p: p[0],
-            )
-            src_ids_sorted = [s for _, s in src_positions]
-            if src_id in src_ids_sorted:
-                idx = src_ids_sorted.index(src_id)
-                n = len(src_ids_sorted)
-                spread = 0.15 + 0.7 * (idx / max(n - 1, 1))
-                if ady >= adx:
-                    entry_x_val = round(spread, 2)
-                    entry_y_val = 0.0 if dy > 0 else 1.0
-                else:
-                    entry_y_val = round(spread, 2)
-                    entry_x_val = 0.0 if dx > 0 else 1.0
-
-        if exit_x_val is None and exit_y_val is None:
-            if ady >= adx:
-                exit_x_val = 0.5
-                exit_y_val = 1.0 if dy > 0 else 0.0
-            else:
-                exit_x_val = 1.0 if dx > 0 else 0.0
-                exit_y_val = 0.5
-        if entry_x_val is None and entry_y_val is None:
-            if ady >= adx:
-                entry_x_val = 0.5
-                entry_y_val = 0.0 if dy > 0 else 1.0
-            else:
-                entry_x_val = 0.0 if dx > 0 else 1.0
-                entry_y_val = 0.5
-
-        return exit_x_val, exit_y_val, entry_x_val, entry_y_val
-
-    # Build edges (merge bidirectional pairs)
     merged_edges: list[tuple[str, str, str, bool]] = []
     seen_pairs: set[tuple[str, str]] = set()
     rel_by_pair: dict[tuple[str, str], list[Relationship]] = {}
@@ -1087,7 +697,22 @@ def generate(diagram: Diagram) -> str:
         src_cell = cell_id_map[src_id]
         tgt_cell = cell_id_map[tgt_id]
         secondary = _is_secondary_edge(src_id, tgt_id)
-        ex, ey, nx, ny = _port_hints(src_id, tgt_id)
+
+        route = layout.route(src_id, tgt_id) or layout.route(tgt_id, src_id)
+
+        # Anchor the edge where ELK attached it, so draw.io reproduces the
+        # routed path exactly instead of re-deriving its own perimeter points.
+        ex = ey = nx = ny = None
+        if route and len(route.points) >= 2:
+            sx, sy, sw, sh = layout.abs_rect(src_id)
+            tx, ty, tw, th = layout.abs_rect(tgt_id)
+            p0, pN = route.points[0], route.points[-1]
+            if sw and sh:
+                ex = round(min(max((p0[0] - sx) / sw, 0.0), 1.0), 3)
+                ey = round(min(max((p0[1] - sy) / sh, 0.0), 1.0), 3)
+            if tw and th:
+                nx = round(min(max((pN[0] - tx) / tw, 0.0), 1.0), 3)
+                ny = round(min(max((pN[1] - ty) / th, 0.0), 1.0), 3)
 
         edge = ET.SubElement(root, "mxCell")
         edge.set("id", f"e_{idx}")
@@ -1102,11 +727,29 @@ def generate(diagram: Diagram) -> str:
         eg.set("relative", "1")
         eg.set("as", "geometry")
 
+        # Explicit waypoints: this is what stops draw.io re-routing through
+        # whatever happens to be in the way.
+        if route and len(route.points) > 2:
+            arr = ET.SubElement(eg, "Array")
+            arr.set("as", "points")
+            for px, py in route.points[1:-1]:
+                mp = ET.SubElement(arr, "mxPoint")
+                mp.set("x", str(round(px, 2)))
+                mp.set("y", str(round(py, 2)))
+
         if label:
             pt = ET.SubElement(eg, "mxPoint")
             pt.set("as", "offset")
-            pt.set("x", "0")
-            pt.set("y", "0")
+            if route and route.label and len(route.points) >= 2:
+                # draw.io positions the label relative to the path midpoint;
+                # offset it to land exactly where ELK reserved room for it.
+                mx_, my_ = _path_midpoint(route.points)
+                lx, ly, lw, lh = route.label
+                pt.set("x", str(round(lx + lw / 2 - mx_, 1)))
+                pt.set("y", str(round(ly + lh / 2 - my_, 1)))
+            else:
+                pt.set("x", "0")
+                pt.set("y", "0")
 
     ET.indent(mxfile, space="  ")
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(

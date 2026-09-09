@@ -7,6 +7,7 @@ from .puml_parser import (
     Relationship,
     TagStyle,
     parse,
+    parse_file,
 )
 from .drawio_generator import generate, load_icon_map
 from . import icons
@@ -22,4 +23,5 @@ __all__ = [
     "icons",
     "load_icon_map",
     "parse",
+    "parse_file",
 ]

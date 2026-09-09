@@ -8,9 +8,12 @@ import re
 @dataclass
 class TagStyle:
     name: str
-    bg_color: str = "#438DD5"
-    font_color: str = "#FFFFFF"
+    bg_color: str = ""
+    font_color: str = ""
     legend_text: str = ""
+    border_color: str = ""
+    border_thickness: str = ""
+    border_style: str = ""
 
 
 @dataclass
@@ -125,11 +128,35 @@ def _clean_desc(desc: str) -> tuple[str, str]:
     return cleaned, sprite
 
 
+# C4 element macros, by base kind. The base decides the signature:
+#   Person/System  -> (alias, label, ?descr)          — no technology arg
+#   Container/Component -> (alias, label, ?techn, ?descr)
+_C4_BASES: dict[str, tuple[str, ...]] = {
+    'Person': ('Person',),
+    'System': ('System', 'SystemDb', 'SystemQueue'),
+    'Container': ('Container', 'ContainerDb', 'ContainerQueue'),
+    'Component': ('Component', 'ComponentDb', 'ComponentQueue'),
+}
+# Bases whose macro carries a `technology` positional between label and description.
+_C4_TECH_BASES = frozenset({'Container', 'Component'})
+
+# Every concrete macro name, plus its `_Ext` variant. Longest-first so the
+# alternation prefers e.g. ContainerDb_Ext over Container.
+_C4_ELEMENTS: dict[str, str] = {
+    f'{name}{suffix}': base
+    for base, names in _C4_BASES.items()
+    for name in names
+    for suffix in ('', '_Ext')
+}
 _RE_COMP = re.compile(
-    r'^(Person|System_Ext|System|Container)\((.+)\)\s*$'
+    r'^(' + '|'.join(sorted(_C4_ELEMENTS, key=len, reverse=True)) + r')\((.+)\)\s*$'
 )
+
+# System_Boundary / Container_Boundary / Enterprise_Boundary / bare Boundary.
+# Trailing args (Boundary's optional `type`, or $tags=) are tolerated and ignored.
 _RE_BOUNDARY = re.compile(
-    r'^System_Boundary\((\w+),\s*"([^"]+)"\)\s*\{'
+    r'^(?:System_Boundary|Container_Boundary|Enterprise_Boundary|Boundary)'
+    r'\((\w+),\s*"([^"]+)"(?:\s*,.*?)?\)\s*\{'
 )
 _RE_TAG = re.compile(r'^AddElementTag\((.+)\)\s*$')
 _RE_LAY = re.compile(r'^Lay_(R|D|L|U)\((\w+),\s*(\w+)\)')
@@ -142,8 +169,70 @@ _RE_BIARROW = re.compile(
 )
 
 
-def parse(puml_text: str) -> Diagram:
-    """Parse PlantUML C4 source into a Diagram model."""
+_RE_INCLUDE = re.compile(r'^!include(?:sub|_many|url)?\s+(.+?)\s*$', re.IGNORECASE)
+
+
+def _expand_includes(
+    puml_text: str,
+    base_dir: 'Path | None',
+    _seen: set | None = None,
+) -> str:
+    """Inline local `!include` files so shared AddElementTag palettes are visible.
+
+    Stdlib includes (`!include <C4/C4_Component>`), URLs and missing files are
+    dropped rather than raising — the converter only needs the styling, and the
+    C4 macros themselves are matched syntactically.
+    """
+    if base_dir is None:
+        return puml_text
+    from pathlib import Path as _Path
+    base_dir = _Path(base_dir)
+    if _seen is None:
+        _seen = set()
+
+    out: list[str] = []
+    for raw in puml_text.splitlines():
+        m = _RE_INCLUDE.match(raw.strip())
+        if not m:
+            out.append(raw)
+            continue
+        target = m.group(1).strip()
+        # Stdlib (<...>) and remote includes carry no project styling.
+        if target.startswith('<') or target.startswith('http'):
+            continue
+        target = _unquote(target).split('!')[0].strip()
+        if not target:
+            continue
+        path = (base_dir / target).resolve()
+        try:
+            key = str(path)
+        except OSError:
+            continue
+        if key in _seen or not path.is_file():
+            continue
+        _seen.add(key)
+        try:
+            nested = path.read_text(encoding='utf-8')
+        except OSError:
+            continue
+        out.append(_expand_includes(nested, path.parent, _seen))
+    return '\n'.join(out)
+
+
+def parse_file(path) -> Diagram:
+    """Parse a .puml file, resolving `!include` relative to that file."""
+    from pathlib import Path as _Path
+    p = _Path(path)
+    return parse(p.read_text(encoding='utf-8'), base_dir=p.parent)
+
+
+def parse(puml_text: str, base_dir=None) -> Diagram:
+    """Parse PlantUML C4 source into a Diagram model.
+
+    `base_dir` enables local `!include` resolution; without it includes are
+    skipped (preserving the original text-only behaviour).
+    """
+    puml_text = _expand_includes(puml_text, base_dir)
     diag = Diagram()
     block_stack: list[tuple[str, str | None]] = []
 
@@ -184,9 +273,12 @@ def parse(puml_text: str) -> Diagram:
             tag_name = _unquote(pos[0]) if pos else ''
             diag.tag_styles[tag_name] = TagStyle(
                 name=tag_name,
-                bg_color=named.get('bgColor', '#438DD5'),
-                font_color=named.get('fontColor', '#FFFFFF'),
+                bg_color=named.get('bgColor', ''),
+                font_color=named.get('fontColor', ''),
                 legend_text=named.get('legendText', ''),
+                border_color=named.get('borderColor', ''),
+                border_thickness=named.get('borderThickness', ''),
+                border_style=named.get('borderStyle', ''),
             )
             continue
 
@@ -214,14 +306,10 @@ def parse(puml_text: str) -> Diagram:
             pos, named = _named_args(args)
             cid = _unquote(pos[0]) if pos else ''
 
-            if ctype == 'Container':
+            if _C4_ELEMENTS[ctype] in _C4_TECH_BASES:
                 name = _unquote(pos[1]) if len(pos) > 1 else ''
                 tech = _unquote(pos[2]) if len(pos) > 2 else ''
                 desc_raw = _unquote(pos[3]) if len(pos) > 3 else ''
-            elif ctype == 'Person':
-                name = _unquote(pos[1]) if len(pos) > 1 else ''
-                tech = ''
-                desc_raw = _unquote(pos[2]) if len(pos) > 2 else ''
             else:
                 name = _unquote(pos[1]) if len(pos) > 1 else ''
                 tech = ''
