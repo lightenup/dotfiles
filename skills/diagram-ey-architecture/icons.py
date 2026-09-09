@@ -10,7 +10,7 @@ Usage:
     from icons import ICONS, datauri
     style = f"shape=image;imageAspect=0;image={datauri('cloud', '#FFE600')};html=1;"
 
-Preview / QA (writes an icon sheet you can render with diagram-render-drawio):
+Preview / QA (writes an icon sheet; render it with `c4drawio render`):
     python3 icons.py            # -> _icon-probe.drawio
 
 Add an icon: append a 24x24, stroke-only SVG fragment to ICONS, then re-run the

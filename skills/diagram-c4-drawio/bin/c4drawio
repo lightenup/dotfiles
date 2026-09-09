@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+"""c4drawio launcher.
+
+Resolves the shared library relative to this script's REAL path (following the
+symlink from ~/.local/bin), so it works from any agent skill root without
+hardcoding one of them.
+"""
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "_lib"))
+
+from puml_drawio.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    raise SystemExit(main())

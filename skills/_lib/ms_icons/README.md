@@ -1,7 +1,7 @@
 # Central Microsoft product-icon library
 
 Curated, renamed subset of the official Microsoft icon packs, shared across
-projects via the `puml_drawio` converter lib and the `diagram-convert-puml-drawio`
+projects via the `puml_drawio` lib and the `diagram-c4-drawio`
 skill. Icons are base64-embedded into the `.drawio` so they render through the
 draw.io CLI without relying on its bundled shape libraries.
 
@@ -14,7 +14,7 @@ draw.io CLI without relying on its bundled shape libraries.
 ## Use from the converter
 ```python
 import sys
-sys.path.insert(0, str(__import__('pathlib').Path.home() / '.factory/skills/_lib'))
+sys.path.insert(0, str(__import__('pathlib').Path.home() / '.agents/skills/_lib'))
 from puml_drawio import icons
 icons.load_catalog()                 # defaults to this catalog.tsv
 uri = icons.datauri('azure/logic_apps.svg')   # base64 data URI for a style

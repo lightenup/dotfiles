@@ -6,14 +6,14 @@ description: >-
   line-icon SVG library. Use when building an EY capability-stack picture
   (CONSUME / ENABLE / CONNECT / RUN, an enablement layer, cross-cutting Trust &
   Innovation rails, a business-outcomes banner) for slides or proposals. Render
-  and export with the diagram-render-drawio skill.
+  and export with `c4drawio render` (see the diagram-c4-drawio skill).
 ---
 
 # EY draw.io Architecture Diagrams
 
 Generate a dark, EY-branded layered architecture stack as draw.io XML with flat
 mono EY-yellow line icons. A Python generator builds the XML; render and export
-with the **`diagram-render-drawio`** skill.
+with **`c4drawio render`** (see the `diagram-c4-drawio` skill).
 
 ## What it produces
 
@@ -44,7 +44,7 @@ Variants (CLI modes):
 ## Prerequisites
 
 - `python3`
-- draw.io desktop for rendering / exporting — see **`diagram-render-drawio`**.
+- draw.io desktop for rendering / exporting — use `c4drawio render <file.drawio>`.
 
 ## Use
 
@@ -58,7 +58,7 @@ Variants (CLI modes):
    python3 diagrams/drawio/generate.py capability
    python3 diagrams/drawio/generate.py capability transparent
    ```
-4. Render / export — see `diagram-render-drawio` → **Export Options**:
+4. Render / export — `c4drawio render <file.drawio> [--format svg] [--scale N]`:
    ```bash
    DRAWIO="/Applications/draw.io.app/Contents/MacOS/draw.io"
    "$DRAWIO" -x -f png -s 2 -o out.png            in.drawio              # preview
@@ -89,5 +89,5 @@ then `python3 icons.py` to preview. Tint per use via `datauri(name, color)`.
 
 The inline-SVG icon technique, XML double-escaping for `html=1` labels,
 transparent export, and the "don't use `mxgraph.basic.*`" finding are documented
-in **`diagram-render-drawio`** (Authoring Gotchas / Export Options). Keep
+in **`diagram-c4-drawio`** (Troubleshooting). Keep
 `icons.py` next to `generate.py` (it imports `from icons import datauri`).

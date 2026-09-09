@@ -53,6 +53,7 @@ tasks:
     cmds:
       # via uv: no pytest in the Homebrew python, and no reason to install one
       - uv run --with pytest -- pytest skills/ -v {{.CLI_ARGS}}
+      - skills/diagram-c4-drawio/bin/c4drawio doctor
 
   mcp:install:
     desc: Distribute MCP servers from mcp/servers.json into all AI clients

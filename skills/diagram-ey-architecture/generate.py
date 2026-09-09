@@ -13,7 +13,7 @@ Variants:
     python3 generate.py capability transparent # no background rect (for -t export)
     python3 generate.py layer transparent
 
-Render / export with the `diagram-render-drawio` skill, e.g.
+Render / export with `c4drawio render`, e.g.
     DRAWIO="/Applications/draw.io.app/Contents/MacOS/draw.io"
     "$DRAWIO" -x -f svg         -o out.svg  in.drawio              # vector (transparent)
     "$DRAWIO" -x -t -f png -s 4  -o out.png  in-transparent.drawio # transparent 4x
