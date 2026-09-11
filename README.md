@@ -85,6 +85,11 @@ control, so the compliant fix is an exception request for the host.
 - **node**: nvm, unchanged.
 - **other SDKs**: SDKMAN, unchanged.
 
+`install.sh` only reproduces the symlink / Brewfile / skills / MCP layer. Secrets,
+auth, private infrastructure, and macOS system state are assumed to exist and are
+not provisioned — see [docs/assumptions.md](docs/assumptions.md) for the full list
+of manual prerequisites and what a laptop switch will not carry over.
+
 ## Daily operations
 
 ```bash
