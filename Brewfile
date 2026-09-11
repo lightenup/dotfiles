@@ -8,6 +8,8 @@ tap "fluxcd/tap", trusted: true
 # upstream rename brew ignores the tap until: brew trust --tap nsomar/tap
 tap "nsomar/tap", trusted: true
 tap "run-llama/liteparse", trusted: true
+tap "anomalyco/tap", trusted: true
+tap "oarrabi/tap", "https://github.com/nsomar/homebrew-tap.git", trusted: true
 brew "act"
 brew "actionlint"
 brew "age"
@@ -79,6 +81,10 @@ brew "ffmpeg"
 brew "sshpass"
 brew "typst"
 brew "unar"
+brew "anomalyco/tap/opencode", trusted: true
+brew "cmake"
+brew "mole"
+brew "pigz"
 # Dropped casks and why:
 #   chromium        — disabled by Homebrew 2026-09-01 (fails macOS Gatekeeper)
 #   mullvad-browser — download blocked by the corporate proxy (403)
