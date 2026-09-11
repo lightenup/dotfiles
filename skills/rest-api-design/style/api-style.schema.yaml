@@ -1,0 +1,376 @@
+# JSON Schema (draft 2020-12) for api-style.yaml
+#
+# api-style.yaml records the STYLE DECISIONS a linter cannot make for you.
+# It holds the choice only. The reasoning lives in an ADR (see references/adr-template.md),
+# referenced by the `adr` field on each decision block.
+#
+# Validate with:
+#   npx --yes ajv-cli validate -s api-style.schema.yaml -d api-style.yaml --spec=draft2020
+
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://github.com/lightenup/dotfiles/skills/rest-api-design/style/api-style.schema.yaml
+title: API Style Profile
+description: >-
+  Machine-readable record of an API's style decisions. Consumed by
+  spectral/profile-overlay.mjs to derive a tuned Spectral ruleset.
+type: object
+required: [version, naming, errors]
+additionalProperties: false
+
+properties:
+
+  version:
+    description: Schema version of this profile format. Currently always 1.
+    type: integer
+    const: 1
+
+  meta:
+    type: object
+    additionalProperties: false
+    properties:
+      name:
+        description: Human label for the API or estate this profile governs.
+        type: string
+      adrs:
+        description: Path to the directory holding the ADRs that justify these choices.
+        type: string
+        default: ./docs/adr/
+      updated:
+        description: ISO date the profile was last revised.
+        type: string
+        format: date
+
+  naming:
+    description: Casing and pluralisation conventions. See references/01-resources.md.
+    type: object
+    additionalProperties: false
+    properties:
+      paths:
+        description: Casing for path segments.
+        enum: [kebab-case, camelCase, snake_case, lowercase]
+        default: kebab-case
+      query:
+        description: Casing for query parameter names.
+        enum: [camelCase, snake_case, kebab-case, PascalCase]
+        default: camelCase
+      json:
+        description: Casing for JSON body property names.
+        enum: [camelCase, snake_case, PascalCase]
+        default: camelCase
+      headers:
+        description: >-
+          Casing for custom headers. HTTP header names are case-insensitive on the
+          wire, but consistency matters for documentation and client codegen.
+        enum: [Hyphenated-Pascal, lowercase-hyphenated]
+        default: Hyphenated-Pascal
+      collections:
+        description: Whether collection resources are plural nouns.
+        enum: [plural, singular]
+        default: plural
+      adr:
+        type: string
+
+  routing:
+    description: Resource layout conventions. See references/01-resources.md.
+    type: object
+    additionalProperties: false
+    properties:
+      style:
+        description: >-
+          resource-oriented = nouns and HTTP verbs. rpc = verbs in the path
+          (/GetMember). Recording `rpc` is legitimate for a legacy estate;
+          it tells the linter not to raise noise you cannot act on.
+        enum: [resource-oriented, rpc, mixed]
+        default: resource-oriented
+      singleton-self:
+        description: >-
+          Path segment identifying "the authenticated caller's own resource",
+          e.g. /profile/me. Empty string disables the convention.
+        type: string
+        default: /me
+      max-path-depth:
+        description: Maximum number of path segments before a resource is considered over-nested.
+        type: integer
+        minimum: 1
+        default: 5
+      adr:
+        type: string
+
+  versioning:
+    description: How breaking changes are surfaced. See references/04-evolution.md.
+    type: object
+    additionalProperties: false
+    properties:
+      strategy:
+        enum: [path, header, query, media-type, none]
+        default: path
+      header-name:
+        description: Required when strategy is `header`.
+        type: string
+      current:
+        description: The current version token, e.g. "v1".
+        type: string
+      require-info-version-match:
+        description: >-
+          Whether info.version in the OpenAPI document must agree with the version
+          token in the path/header. Catches the common "info.version 0.1 but /v1" drift.
+        type: boolean
+        default: true
+      deprecation:
+        type: object
+        additionalProperties: false
+        properties:
+          require-sunset-header:
+            description: Whether deprecated operations must document a Sunset response header.
+            type: boolean
+            default: true
+          min-notice-days:
+            type: integer
+            minimum: 0
+            default: 180
+      adr:
+        type: string
+
+  errors:
+    description: The error representation. See references/03-errors.md.
+    type: object
+    required: [model]
+    additionalProperties: false
+    properties:
+      model:
+        description: >-
+          problem-details = RFC 9457 application/problem+json (recommended default).
+          envelope = a custom {data, errors, meta} wrapper on every response.
+          bare = payload only, errors unmodelled (not recommended; recorded for legacy estates).
+        enum: [problem-details, envelope, bare]
+        default: problem-details
+      media-type:
+        description: Required when model is `problem-details`.
+        type: string
+        default: application/problem+json
+      envelope:
+        description: Required when model is `envelope`.
+        type: object
+        additionalProperties: false
+        properties:
+          data-field: { type: string, default: data }
+          errors-field: { type: string, default: errors }
+          meta-field: { type: string, default: meta }
+      code-vocabulary:
+        description: >-
+          closed = machine-readable error codes come from a fixed enum declared in the
+          spec. open = free-form strings. Closed is strongly preferred: it is what makes
+          an error machine-actionable rather than merely human-readable.
+        enum: [closed, open, none]
+        default: closed
+      require-declared-statuses:
+        description: >-
+          Status codes every operation must declare a response for, beyond its success
+          code. Operations missing one of these are flagged.
+        type: array
+        items:
+          type: string
+          pattern: '^[1-5][0-9X]{2}$'
+        default: ['400', '401', '404', '500']
+      forbid-message-passthrough:
+        description: >-
+          Flag response schemas whose description suggests raw exception text is returned
+          to the caller. Information disclosure, and it couples clients to internals.
+        type: boolean
+        default: true
+      adr:
+        type: string
+
+  pagination:
+    description: Collection bounding. See references/05-cross-cutting.md.
+    type: object
+    additionalProperties: false
+    properties:
+      style:
+        enum: [cursor, offset, page, none]
+        default: cursor
+      required-on-collections:
+        description: >-
+          Whether every array-returning operation must be paginated. Unbounded
+          collections are the most common latency and cost defect in a REST estate.
+        type: boolean
+        default: true
+      params:
+        type: object
+        additionalProperties: false
+        properties:
+          cursor: { type: string, default: cursor }
+          limit: { type: string, default: limit }
+          offset: { type: string, default: offset }
+          page: { type: string, default: page }
+      default-limit:
+        type: integer
+        minimum: 1
+        default: 50
+      max-limit:
+        type: integer
+        minimum: 1
+        default: 200
+      adr:
+        type: string
+
+  idempotency:
+    description: Safe retry semantics. See references/05-cross-cutting.md.
+    type: object
+    additionalProperties: false
+    properties:
+      scope:
+        description: >-
+          unsafe-non-idempotent = require an idempotency key on POST (and PATCH where it
+          is not naturally idempotent). all-writes = also on PUT/DELETE. none = no requirement.
+        enum: [unsafe-non-idempotent, all-writes, none]
+        default: unsafe-non-idempotent
+      header:
+        type: string
+        default: Idempotency-Key
+      key-format:
+        enum: [uuid, opaque]
+        default: uuid
+      retention-hours:
+        type: integer
+        minimum: 1
+        default: 24
+      adr:
+        type: string
+
+  correlation:
+    description: Request tracing. See references/05-cross-cutting.md.
+    type: object
+    additionalProperties: false
+    properties:
+      header:
+        type: string
+        default: X-Correlation-ID
+      echo:
+        description: >-
+          Whether the correlation id must be returned on the response. A correlation id
+          that is read and logged but never echoed cannot tie a client-side failure to a
+          server-side log line, which defeats its purpose.
+        enum: [required, optional, none]
+        default: required
+      adr:
+        type: string
+
+  identity:
+    description: Who the request is about. See references/06-security-privacy.md.
+    type: object
+    additionalProperties: false
+    properties:
+      subject-source:
+        description: >-
+          token = the authorisation subject is derived from the validated credential.
+          header = a client-supplied header names the subject (accepts IDOR risk).
+          gateway-injected = an upstream gateway strips client input and injects a
+          trusted header after validating the credential.
+        enum: [token, gateway-injected, header]
+        default: token
+      subject-header:
+        description: Required when subject-source is `gateway-injected` or `header`.
+        type: string
+      client-asserted-id:
+        description: >-
+          Whether a client may name the subject of a request in a header or parameter.
+          `forbidden` is the safe default: if the client can name the subject, the
+          server must independently authorise it, and estates rarely do.
+        enum: [forbidden, allowed-with-authz-check, allowed]
+        default: forbidden
+      adr:
+        type: string
+
+  pii:
+    description: Personal data handling as a contract property. See references/06-security-privacy.md.
+    type: object
+    additionalProperties: false
+    properties:
+      masking:
+        description: >-
+          response-level = sensitive identifiers are masked in every response
+          representation. logging-only = masked in logs but returned in full.
+          none = returned in full.
+        enum: [response-level, logging-only, none]
+        default: response-level
+      log-redaction:
+        enum: [required, optional, none]
+        default: required
+      third-party-pii:
+        description: >-
+          Whether a subject-scoped response may contain personal data belonging to
+          someone other than the authorisation subject. `forbidden` is the safe default.
+        enum: [forbidden, allowed-with-separate-authz, allowed]
+        default: forbidden
+      sensitive-field-patterns:
+        description: >-
+          Property-name patterns treated as personal data by the linter. Extend for your
+          jurisdiction and domain.
+        type: array
+        items: { type: string }
+        default: ['ssn', 'nationalId', 'personalNumber', 'dateOfBirth', 'taxId']
+      adr:
+        type: string
+
+  webhooks:
+    description: Outbound callback conventions. See references/07-webhooks-async.md.
+    type: object
+    additionalProperties: false
+    properties:
+      signature:
+        enum: [hmac-sha256, jws, mtls, none]
+        default: hmac-sha256
+      signature-header:
+        type: string
+        default: X-Signature
+      timestamp-header:
+        description: Required to bound replay attacks when signature is hmac-sha256.
+        type: string
+        default: X-Signature-Timestamp
+      delivery:
+        enum: [at-least-once, at-most-once]
+        default: at-least-once
+      payload-style:
+        description: >-
+          notification = event id + type + resource link only, consumer re-reads.
+          full-payload = event carries the state. notification is more robust to
+          ordering problems and leaks less into logs.
+        enum: [notification, full-payload, hybrid]
+        default: notification
+      adr:
+        type: string
+
+  smells:
+    description: >-
+      Thresholds for the decomposition smell rules. Conservative defaults; override if
+      your domain genuinely warrants larger representations, but read
+      references/09-decomposition.md before raising them.
+    type: object
+    additionalProperties: false
+    properties:
+      max-response-depth:
+        description: Maximum nesting levels in a response schema before a split is suggested.
+        type: integer
+        minimum: 1
+        default: 3
+      max-response-properties:
+        description: Maximum total leaf properties in a response representation.
+        type: integer
+        minimum: 1
+        default: 40
+      max-nullable-ratio:
+        description: >-
+          Fraction of properties that may be nullable/optional before the representation
+          is suspected of serving multiple personas. See the nullability-by-persona test.
+        type: number
+        minimum: 0
+        maximum: 1
+        default: 0.6
+
+  ignore:
+    description: >-
+      Documents excluded from profile-derived rules, e.g. vendor-imported specs you do
+      not own. Glob patterns relative to the repo root. Base structural rules still apply.
+    type: array
+    items: { type: string }

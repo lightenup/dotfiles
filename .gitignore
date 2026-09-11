@@ -3,3 +3,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Generated Spectral ruleset from skills/rest-api-design (normally written to a temp dir,
+# but profile-overlay.mjs falls back to writing here when run without --out).
+skills/rest-api-design/spectral/.derived-ruleset.yaml

@@ -1,0 +1,151 @@
+# Fixture: an over-aggregated read endpoint.
+#
+# Synthetic library-loans domain. Structurally this is the classic "God-object read":
+# one endpoint serving member identity, membership administration, loan history, the
+# physical inventory of every borrowed copy, and third-party personal data — all at one
+# authorisation level, on a path scoped to the caller.
+#
+# It exists to prove the three decomposition smells fire and that securityDefects
+# spots third-party PII in a self-scoped response.
+
+openapi: 3.0.3
+info:
+  title: Library Aggregate Fixture
+  version: 1.0.0
+  description: Deliberately over-aggregated, for testing the decomposition smells.
+servers:
+  - url: https://api.example.org/v1
+paths:
+  /members/me:
+    get:
+      operationId: getMyMemberRecord
+      summary: Everything about the calling member
+      description: Returns the full member aggregate.
+      responses:
+        '200':
+          description: The member aggregate.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberAggregate'
+        '401':
+          description: Not authenticated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+components:
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+
+    MemberAggregate:
+      type: object
+      required: [memberId]
+      properties:
+        memberId: { type: string, format: uuid }
+        nationalId: { type: string, description: The member's national identity number. }
+        firstName: { type: string }
+        lastName: { type: string }
+        preferredName: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        dateOfBirth: { type: string, format: date, nullable: true }
+        addressLine1: { type: string, nullable: true }
+        addressLine2: { type: string, nullable: true }
+        postalCode: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        membershipNumber: { type: string, nullable: true }
+        membershipTier: { type: string, nullable: true }
+        membershipStartedOn: { type: string, format: date, nullable: true }
+        membershipExpiresOn: { type: string, format: date, nullable: true }
+        membershipStatus: { type: string, nullable: true }
+        outstandingFees: { type: number, nullable: true }
+        feeCurrency: { type: string, nullable: true }
+        branchId: { type: string, nullable: true }
+        branchName: { type: string, nullable: true }
+        notesFromStaff: { type: string, nullable: true }
+        marketingOptIn: { type: boolean, nullable: true }
+        coBorrowers:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/CoBorrower'
+        loans:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Loan'
+
+    CoBorrower:
+      type: object
+      properties:
+        nationalId: { type: string, description: Identity number of another person. }
+        fullName: { type: string }
+        relationship: { type: string }
+
+    Loan:
+      type: object
+      properties:
+        loanId: { type: string }
+        borrowedOn: { type: string, format: date }
+        dueOn: { type: string, format: date }
+        returnedOn: { type: string, format: date, nullable: true }
+        renewalCount: { type: integer, nullable: true }
+        overdueDays: { type: integer, nullable: true }
+        feeAccrued: { type: number, nullable: true }
+        loanStatus: { type: string, nullable: true }
+        copy:
+          $ref: '#/components/schemas/Copy'
+
+    Copy:
+      type: object
+      properties:
+        copyId: { type: string }
+        barcode: { type: string }
+        acquiredOn: { type: string, format: date, nullable: true }
+        conditionGrade: { type: string, nullable: true }
+        title: { type: string }
+        author: { type: string }
+        isbn: { type: string, nullable: true }
+        edition: { type: string, nullable: true }
+        shelf:
+          $ref: '#/components/schemas/Shelf'
+        conditionItems:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/ConditionItem'
+
+    Shelf:
+      type: object
+      properties:
+        shelfCode: { type: string }
+        aisle: { type: string, nullable: true }
+        floor: { type: integer, nullable: true }
+        location:
+          $ref: '#/components/schemas/Location'
+
+    Location:
+      type: object
+      properties:
+        buildingName: { type: string }
+        street: { type: string, nullable: true }
+        postalCode: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        openingHours: { type: string, nullable: true }
+
+    ConditionItem:
+      type: object
+      properties:
+        itemCode: { type: string }
+        description: { type: string, nullable: true }
+        severity: { type: string, nullable: true }
+        recordedOn: { type: string, format: date, nullable: true }
+        recordedBy: { type: string, nullable: true }

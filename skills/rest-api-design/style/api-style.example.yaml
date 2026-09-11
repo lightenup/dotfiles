@@ -1,0 +1,146 @@
+# api-style.yaml — API Style Profile
+#
+# Copy this file to the root of the repo that owns the API, delete what you have not
+# decided yet, and record the reasoning for each block in an ADR.
+#
+# This file holds the CHOICE. The ADR holds the ARGUMENT. Keep them separate:
+# a profile crowded with justification stops being diffable, and an ADR that only
+# states the outcome cannot be revisited when the context changes.
+#
+# Every block below is optional except `version`, `naming` and `errors`. Omitted blocks
+# simply mean "not decided" — the linter then skips the corresponding rules rather than
+# guessing. That is deliberate: a profile should never assert a decision nobody made.
+#
+# Validate:  npx --yes ajv-cli validate -s api-style.schema.yaml -d api-style.yaml --spec=draft2020
+# Lint:      ./lint-api.sh openapi/my-api.yaml
+
+version: 1
+
+meta:
+  name: Example API
+  adrs: ./docs/adr/
+  updated: 2026-09-01
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Naming — see references/01-resources.md
+# ─────────────────────────────────────────────────────────────────────────────
+naming:
+  paths: kebab-case        # /rental-agreements, not /rentalAgreements or /RentalAgreements
+  query: camelCase         # ?includeArchived=true
+  json: camelCase          # {"firstName": "..."}
+  headers: Hyphenated-Pascal   # X-Correlation-ID
+  collections: plural      # /members/{id}, not /member/{id}
+  adr: ./docs/adr/0001-naming-conventions.md
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Routing — see references/01-resources.md
+# ─────────────────────────────────────────────────────────────────────────────
+routing:
+  style: resource-oriented
+  singleton-self: /me      # /profile/me — the caller's own resource, no id in the path
+  max-path-depth: 5
+  adr: ./docs/adr/0002-resource-layout.md
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Versioning — see references/04-evolution.md
+# ─────────────────────────────────────────────────────────────────────────────
+versioning:
+  strategy: path
+  current: v1
+  require-info-version-match: true
+  deprecation:
+    require-sunset-header: true
+    min-notice-days: 180
+  adr: ./docs/adr/0003-versioning.md
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Errors — see references/03-errors.md
+# ─────────────────────────────────────────────────────────────────────────────
+errors:
+  model: problem-details
+  media-type: application/problem+json
+  code-vocabulary: closed
+  require-declared-statuses: ['400', '401', '404', '500']
+  forbid-message-passthrough: true
+  adr: ./docs/adr/0004-error-model.md
+
+# If you chose the envelope model instead, the block looks like this:
+#
+# errors:
+#   model: envelope
+#   envelope:
+#     data-field: data
+#     errors-field: errors
+#     meta-field: meta
+#   code-vocabulary: closed
+#   adr: ./docs/adr/0004-error-model.md
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cross-cutting — see references/05-cross-cutting.md
+# ─────────────────────────────────────────────────────────────────────────────
+pagination:
+  style: cursor
+  required-on-collections: true
+  params:
+    cursor: cursor
+    limit: limit
+  default-limit: 50
+  max-limit: 200
+  adr: ./docs/adr/0005-pagination.md
+
+idempotency:
+  scope: unsafe-non-idempotent
+  header: Idempotency-Key
+  key-format: uuid
+  retention-hours: 24
+  adr: ./docs/adr/0006-idempotency.md
+
+correlation:
+  header: X-Correlation-ID
+  echo: required
+  adr: ./docs/adr/0007-correlation.md
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Security & privacy — see references/06-security-privacy.md
+# ─────────────────────────────────────────────────────────────────────────────
+identity:
+  subject-source: token
+  client-asserted-id: forbidden
+  adr: ./docs/adr/0008-identity.md
+
+pii:
+  masking: response-level
+  log-redaction: required
+  third-party-pii: forbidden
+  sensitive-field-patterns:
+    - ssn
+    - nationalId
+    - personalNumber
+    - dateOfBirth
+    - taxId
+  adr: ./docs/adr/0009-pii.md
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Webhooks — see references/07-webhooks-async.md
+# ─────────────────────────────────────────────────────────────────────────────
+webhooks:
+  signature: hmac-sha256
+  signature-header: X-Signature
+  timestamp-header: X-Signature-Timestamp
+  delivery: at-least-once
+  payload-style: notification
+  adr: ./docs/adr/0010-webhooks.md
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Decomposition smells — see references/09-decomposition.md
+# Raise these only with a reason recorded in an ADR.
+# ─────────────────────────────────────────────────────────────────────────────
+smells:
+  max-response-depth: 3
+  max-response-properties: 40
+  max-nullable-ratio: 0.6
+
+# Vendor-imported specs you proxy but do not own. Base structural rules still apply;
+# profile-derived style rules do not, because you cannot act on them.
+ignore:
+  - 'specs/vendor/**'

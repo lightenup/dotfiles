@@ -1,0 +1,265 @@
+# Fixture: a document that conforms to style/api-style.example.yaml.
+#
+# This is the calibration case. If a rule fires here, either the rule is wrong or this
+# document is — and the answer matters, because a ruleset that cannot be satisfied
+# teaches people to ignore it.
+
+openapi: 3.0.3
+info:
+  title: Library Loans API
+  version: 1.0.0
+  description: >-
+    Borrowing and returning copies. Conforms to the example style profile:
+    kebab-case resource paths, path versioning, RFC 9457 errors with a closed code
+    vocabulary, cursor pagination, correlation ids echoed on every response.
+servers:
+  - url: https://api.example.org/v1
+    description: Production gateway.
+
+tags:
+  - name: Loans
+
+paths:
+  /loans:
+    get:
+      operationId: listMyLoans
+      summary: List the calling member's loans
+      description: >-
+        Returns the caller's loans, most recent first. The subject is taken from the
+        access token; there is no way to ask for another member's loans here.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of loans.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanPage'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+    post:
+      operationId: borrowCopy
+      summary: Borrow a copy
+      description: Creates a loan for the calling member.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BorrowRequest'
+      responses:
+        '201':
+          description: The loan was created, or an identical request was replayed.
+          headers:
+            Location:
+              description: The created loan.
+              schema: { type: string, format: uri }
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /loans/{loanId}:
+    get:
+      operationId: getLoan
+      summary: Get one loan
+      description: Returns a single loan belonging to the calling member.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: loanId
+          in: path
+          required: true
+          description: Identifier of the loan.
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The loan.
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      description: Client-supplied trace id. Generated if absent, and always echoed back.
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Retry-safety key. Replaying the same key returns the original result.
+      schema: { type: string, format: uuid }
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor from the previous page.
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Page size.
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+
+  headers:
+    CorrelationId:
+      description: Echo of the request's trace id.
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: The request was malformed or failed validation.
+      headers:
+        X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: The credential was missing, expired or invalid.
+      headers:
+        X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: No such resource, or it does not belong to the caller.
+      headers:
+        X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    UnprocessableEntity:
+      description: The request was well formed but a business rule refused it.
+      headers:
+        X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    InternalError:
+      description: Something failed on our side. The correlation id identifies the occurrence.
+      headers:
+        X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+
+    Problem:
+      type: object
+      description: RFC 9457 problem detail.
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Stable identifier for the problem kind.
+        title:
+          type: string
+          description: Short human-readable summary.
+        status:
+          type: integer
+          description: HTTP status code.
+        detail:
+          type: string
+          description: Explanation specific to this occurrence.
+        instance:
+          type: string
+          format: uri
+          description: Identifies this occurrence.
+        code:
+          type: string
+          description: Machine-readable code from a closed vocabulary.
+          enum:
+            - VALIDATION_ERROR
+            - UNAUTHORIZED
+            - NOT_FOUND
+            - COPY_UNAVAILABLE
+            - LOAN_LIMIT_REACHED
+            - INTERNAL_ERROR
+
+    BorrowRequest:
+      type: object
+      required: [copyId]
+      properties:
+        copyId:
+          type: string
+          format: uuid
+          description: The copy to borrow.
+        notes:
+          type: string
+          maxLength: 500
+          description: Free-text note kept with the loan.
+
+    Loan:
+      type: object
+      required: [loanId, copyId, borrowedOn, dueOn, status]
+      properties:
+        loanId: { type: string, format: uuid, description: Identifier of the loan. }
+        copyId: { type: string, format: uuid, description: The borrowed copy. }
+        borrowedOn: { type: string, format: date, description: Date the loan started. }
+        dueOn: { type: string, format: date, description: Date the copy is due back. }
+        returnedOn:
+          type: string
+          format: date
+          nullable: true
+          description: Date the copy was returned; null while on loan.
+        status:
+          type: string
+          description: Current state of the loan.
+          enum: [active, returned, overdue, lost]
+
+    LoanPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          description: The loans on this page.
+          items:
+            $ref: '#/components/schemas/Loan'
+        nextCursor:
+          type: string
+          nullable: true
+          description: Cursor for the next page; null on the last page.
+
+security:
+  - bearerAuth: []

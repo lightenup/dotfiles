@@ -1,0 +1,98 @@
+openapi: 3.0.1
+info:
+  title: Deliberately Bad API
+  version: '1.0'
+paths:
+  '/GetWidget':
+    get:
+      summary: Get Widget By Id
+      description: Get Widget By SSN
+      operationId: get-widget
+      parameters:
+        - name: Identifier
+          in: query
+          required: true
+          schema:
+            enum: ['']
+            type: ''
+        - name: widgetType
+          in: query
+          required: true
+          schema:
+            type: ''
+      responses:
+        '200':
+          description: ''
+  '/getwidgets ':
+    post:
+      operationId: get-widget
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetQuery'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Widget'
+  '/UpdateWidget':
+    put:
+      operationId: update-widget
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWidget'
+      responses:
+        '200':
+          description: ''
+components:
+  schemas:
+    WidgetQuery:
+      type: object
+      properties:
+        PageSize:
+          type: Integer
+        NextLink: {}
+        Files:
+          type: array
+        Tags:
+          type: object
+          properties:
+            Name:
+              type:
+                type: string
+    UpdateWidget:
+      type: object
+    Widget:
+      type: object
+      properties:
+        widgetId:
+          type: GUID
+        status:
+          type: string
+          enum: ['']
+        grade:
+          type: string
+          nullable: true
+          enum: [green, amber, null]
+        region:
+          type: string
+          enum: ['098-09-0981']
+    OrphanedResponse:
+      type: object
+      properties:
+        firstName:
+          type: string
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+security:
+  - apiKeyHeader: []
