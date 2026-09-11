@@ -53,6 +53,7 @@ export SDKMAN_DIR="$HOME/.sdkman"
 # its per-prompt hook must win over anything SDKMAN prepends. Use mise, not
 # `sdk install java`, for JDKs.
 command -v mise >/dev/null && eval "$(mise activate zsh)"
+export UNSLOTH_DIFFUSION_ALLOW_OVERSIZED_LOAD=1
 
 # Added by LM Studio CLI (lms)
 export PATH="$PATH:$HOME/.lmstudio/bin"
