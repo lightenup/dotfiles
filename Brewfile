@@ -44,7 +44,15 @@ brew "node"
 brew "nvm"
 # opencode's own autoupdater is disabled in opencode/opencode.json: brew owns
 # the version here, and the two fight over the binary otherwise.
-brew "opencode"
+# PINNED: 1.18.30 crashes on every prompt -- anomalyco/opencode#48645,
+# "TypeError: undefined is not an object (evaluating 'a.name')" in
+# SystemPrompt.environment, before any request reaches a model. Reproduces with
+# an empty config and any provider. 1.18.20 is the last verified-good build.
+# The homebrew/core bottle for it is gone from ghcr, so local/pin carries a
+# formula pointing at the upstream release artifact.
+# Revert to `brew "opencode"` and `brew untap local/pin` once a fix ships.
+tap "local/pin"
+brew "local/pin/opencode@1.18.20"
 brew "opentofu"
 brew "pinentry-mac"
 brew "pipx"
