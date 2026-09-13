@@ -1,0 +1,47 @@
+# Non-secret environment shared by every zsh. Sourced from shell/zshenv.
+#
+# Safe to commit: nothing here is a secret. Real secrets live in Bitwarden and
+# are read through scripts/secret.sh — this file may name a vault item, never
+# its contents.
+#
+# Every value uses the ${VAR:-default} form, so the first writer wins and
+# precedence runs:  real environment > shell/env.local > this file. Put
+# machine-specific values in the untracked shell/env.local; zshenv sources that
+# one first for exactly this reason.
+#
+# PATH deliberately stays out of this file. /etc/zprofile runs path_helper for
+# login shells, which reorders anything set this early; PATH is built in
+# shell/zshrc instead.
+
+# ── Local LLM ──────────────────────────────────────────────────────────────
+# Key for the local oMLX server on http://127.0.0.1:8000, read by
+# opencode/opencode.json as {env:OMLX_API_KEY}. Not treated as a secret: it
+# guards a loopback service. oMLX keeps its own copy in ~/.omlx/settings.json,
+# so rotating the key in the oMLX UI means editing this line to match.
+export OMLX_API_KEY="${OMLX_API_KEY:-1234}"
+
+# LiteLLM proxy key, read by opencode.json as {env:LITELLM_LOCAL_KEY} for the
+# `role` provider (coder/reasoner/fast/diagram on 127.0.0.1:4000). Unlike
+# OMLX_API_KEY this IS a secret, so it is read from a 0600 file rather than
+# written here — shell/env is tracked in git.
+#
+# It belongs here and not in zshrc: zshrc is sourced only by INTERACTIVE shells,
+# so opencode launched from anywhere else saw no key and failed with
+# "Authentication Error, No api key passed in" while omlx/* kept working.
+#
+# The ${VAR:-...} guard is doing real work: this file runs on every zsh
+# invocation, and without it every nested shell would fork a cat.
+export LITELLM_LOCAL_KEY="${LITELLM_LOCAL_KEY:-$(cat "$HOME/.omlx/litellm_local_key" 2>/dev/null)}"
+
+# ── Tooling ────────────────────────────────────────────────────────────────
+# Tesseract language data for the liteparse OCR fallback.
+# Provisioned by: task ocr:provision-tessdata
+export TESSDATA_PREFIX="${TESSDATA_PREFIX:-$HOME/.local/share/tessdata}"
+
+# Tool homes. shell/zshrc still assembles PATH from these, but exporting them
+# here means non-interactive shells see them too — a gradle build invoked from
+# a script needs ANDROID_HOME whether or not a zshrc ever ran.
+export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
+export SUBL_HOME="${SUBL_HOME:-/Applications/Sublime Text.app/Contents/SharedSupport/bin}"
+export INTELLIJ_HOME="${INTELLIJ_HOME:-/Applications/IntelliJ IDEA.app/Contents/MacOS}"
+export LOCAL_BIN="${LOCAL_BIN:-$HOME/.local/bin}"

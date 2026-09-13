@@ -77,6 +77,44 @@ It tries a plain `git push` first, and refuses anything that would rewrite
 history (signed commits, non-fast-forwards). The block is a deliberate DLP
 control, so the compliant fix is an exception request for the host.
 
+## Environment
+
+`shell/env` is the shared, committed, non-secret environment: one place for the
+variables tools expect to find, with a comment per entry explaining what reads
+it. `shell/zshenv` (symlinked to `~/.zshenv`) sources it.
+
+`.zshenv` rather than `.zprofile` or `.zshrc` because it is the only startup
+file every zsh reads. `zprofile` is login shells only and `zshrc` interactive
+only, so a variable declared there is invisible to `zsh -c`, to editor-spawned
+shells, and to anything a script calls. A gradle build launched from a script
+needs `ANDROID_HOME` whether or not an interactive shell ever ran.
+
+Two things deliberately stay out of `shell/env`:
+
+- **PATH.** `/etc/zprofile` runs `path_helper` for login shells, which reorders
+  anything set that early. PATH is assembled in `shell/zshrc`, from the tool
+  homes that `shell/env` exports.
+- **Secrets.** Those live in Bitwarden and are read through
+  `scripts/secret.sh`. `shell/env` may name a vault item, never its contents.
+  `skills/nextcloud/config` is the pattern to copy.
+
+Per-machine values go in `shell/env.local`, which is untracked. Precedence:
+
+```
+real environment  >  shell/env.local  >  shell/env
+```
+
+Everything assigns with `${VAR:-default}`, so the first writer wins, and that
+is why `zshenv` sources `env.local` *before* `env`. Sourcing it after would
+leave it dead: `env` would already have set every variable and the
+`${VAR:-default}` in `env.local` would decline to touch it. With this order
+both `export FOO=bar` and `export FOO="${FOO:-bar}"` override correctly.
+
+Two limits worth knowing. `zshenv` must never print anything, because scp and
+rsync parse the first bytes a remote shell emits. And the launchd drift job
+invokes `/bin/bash` directly from its plist, so it does not read `zshenv` at
+all; anything it needs has to be set in the plist or the script itself.
+
 ## Toolchains
 
 - **dotnet, java**: mise, configured in `mise/config.toml` (symlinked to

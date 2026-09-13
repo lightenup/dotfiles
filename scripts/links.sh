@@ -9,6 +9,7 @@ dotfiles_links() {
   local d="$1"
 
   printf '%s\t%s\n' \
+    "$d/shell/zshenv" "$HOME/.zshenv" \
     "$d/shell/zshrc" "$HOME/.zshrc" \
     "$d/shell/zprofile" "$HOME/.zprofile" \
     "$d/git/gitconfig" "$HOME/.gitconfig" \

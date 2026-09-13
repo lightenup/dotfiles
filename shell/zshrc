@@ -12,16 +12,11 @@ compinit
 autoload bashcompinit && bashcompinit
 [ -r "$HOMEBREW_PREFIX/etc/bash_completion.d/az" ] && source "$HOMEBREW_PREFIX/etc/bash_completion.d/az"
 
-export SUBL_HOME="/Applications/Sublime Text.app/Contents/SharedSupport/bin"
-export ANDROID_HOME="$HOME/Library/Android/sdk"
-export INTELLIJ_HOME="/Applications/IntelliJ IDEA.app/Contents/MacOS"
-export LOCAL_BIN="$HOME/.local/bin"
-
-# JAVA_HOME is deliberately absent here — mise sets it for the active JDK.
+# SUBL_HOME, ANDROID_HOME, INTELLIJ_HOME and LOCAL_BIN come from shell/env via
+# shell/zshenv, which runs before this file. PATH is assembled here rather than
+# there because /etc/zprofile runs path_helper after zshenv and reorders it.
+# JAVA_HOME is deliberately absent — mise sets it for the active JDK.
 export PATH="$HOME/bin:$SUBL_HOME:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$INTELLIJ_HOME:$LOCAL_BIN:$PATH"
-
-export TESSDATA_PREFIX="$HOME/.local/share/tessdata"
-
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && . "$HOMEBREW_PREFIX/opt/nvm/nvm.sh"                              # loads nvm
 [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && . "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"

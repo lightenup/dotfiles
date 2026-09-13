@@ -1,0 +1,26 @@
+# Read by every zsh before any other startup file: login shells, interactive
+# shells and bare `zsh -c` alike. That reach is the whole point — zprofile and
+# zshrc are skipped by non-interactive shells, so anything a tool needs to find
+# in its environment belongs in shell/env rather than in those two.
+#
+# Print nothing from here. scp and rsync parse the first bytes of the remote
+# shell's output and break on stray text.
+#
+# %x is the file holding the current code and :A resolves symlinks, so this
+# finds the repo through the ~/.zshenv symlink using pure parameter expansion.
+# No subshell, no readlink: this file runs on every single zsh invocation.
+_dotfiles_shell="${${(%):-%x}:A:h}"
+
+# env.local is sourced BEFORE env, which looks backwards but is what makes the
+# override layer work. Both files assign with ${VAR:-default}, so the first
+# writer wins and the load order runs most specific to least specific:
+#
+#   real environment  >  shell/env.local  >  shell/env
+#
+# Sourcing env.local second would leave it dead: env would already have set
+# every variable, and the ${VAR:-default} in env.local would decline to touch
+# them. This way a plain `export FOO=bar` and a `${FOO:-bar}` both override.
+[ -r "$_dotfiles_shell/env.local" ] && . "$_dotfiles_shell/env.local"
+[ -r "$_dotfiles_shell/env" ] && . "$_dotfiles_shell/env"
+
+unset _dotfiles_shell

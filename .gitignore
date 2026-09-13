@@ -7,3 +7,8 @@ __pycache__/
 # Generated Spectral ruleset from skills/rest-api-design (normally written to a temp dir,
 # but profile-overlay.mjs falls back to writing here when run without --out).
 skills/rest-api-design/spectral/.derived-ruleset.yaml
+
+# Per-machine environment overrides, sourced after the committed shell/env.
+# Untracked on purpose: this is the escape hatch for values that differ between
+# machines. Secrets still belong in Bitwarden, via scripts/secret.sh.
+shell/env.local
