@@ -1,0 +1,338 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": false,
+  "share": "disabled",
+  "model": "omlx/Qwen3.8-27B-8bit:qwen-code",
+  "small_model": "omlx/Qwen3.8-27B-oQ4e-mtp:oq-agent",
+  "provider": {
+    "omlx": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "oMLX",
+      "options": {
+        "baseURL": "http://127.0.0.1:8000/v1",
+        "apiKey": "{env:OMLX_API_KEY}",
+        "timeout": 2700000,
+        "headerTimeout": 2700000
+      },
+      "models": {
+        "Qwen3.8-27B-8bit:qwen-code": {
+          "name": "Qwen3 27B (Code)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "Qwen3.8-27B-8bit:qwen-agent": {
+          "name": "Qwen3 27B (Agent)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 8192
+          }
+        },
+        "Qwen3.8-27B-8bit:qwen-reason": {
+          "name": "Qwen3 27B (Reason)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": true,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 65536,
+            "output": 32768
+          }
+        },
+        "Qwen3.8-27B-8bit:qwen-long": {
+          "name": "Qwen3 27B (Long context)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 262144,
+            "output": 8192
+          }
+        },
+        "Qwen3.8-27B-oQ4e-mtp:oq-code": {
+          "name": "Qwen3 27B oQ4e (Code)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "Qwen3.8-27B-oQ4e-mtp:oq-agent": {
+          "name": "Qwen3 27B oQ4e (Agent)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 8192
+          }
+        },
+        "Qwen3.8-27B-oQ4e-mtp:oq-long": {
+          "name": "Qwen3 27B oQ4e (Long)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 262144,
+            "output": 32768
+          }
+        }
+      }
+    },
+    "role": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "oMLX via LiteLLM (roles)",
+      "options": {
+        "baseURL": "http://127.0.0.1:4000/v1",
+        "apiKey": "{env:LITELLM_LOCAL_KEY}",
+        "timeout": 2700000,
+        "headerTimeout": 2700000
+      },
+      "models": {
+        "coder": {
+          "name": "Role: coder (8-bit)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "reasoner": {
+          "name": "Role: reasoner (8-bit, thinking)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": true,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "fast": {
+          "name": "Role: fast (oQ4e)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 8192
+          }
+        },
+        "diagram": {
+          "name": "Role: diagram (8-bit)",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        }
+      }
+    }
+  },
+  "agent": {
+    "build": {
+      "model": "omlx/Qwen3.8-27B-8bit:qwen-code"
+    },
+    "plan": {
+      "model": "omlx/Qwen3.8-27B-8bit:qwen-reason"
+    },
+    "explore": {
+      "model": "omlx/Qwen3.8-27B-oQ4e-mtp:oq-agent"
+    },
+    "general": {
+      "model": "omlx/Qwen3.8-27B-oQ4e-mtp:oq-agent"
+    },
+    "title": {
+      "model": "omlx/Qwen3.8-27B-oQ4e-mtp:oq-agent"
+    },
+    "summary": {
+      "model": "omlx/Qwen3.8-27B-oQ4e-mtp:oq-agent"
+    },
+    "compaction": {
+      "model": "omlx/Qwen3.8-27B-oQ4e-mtp:oq-agent"
+    },
+    "speckit": {
+      "description": "Spec Kit authoring commands: constitution, specify, clarify, plan, tasks, checklist. Uses the reason profile for thinking, but unlike the built-in plan agent it can write, which those commands require.",
+      "mode": "primary",
+      "model": "omlx/Qwen3.8-27B-8bit:qwen-reason",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "speckit-wide": {
+      "description": "Whole-repo reads at the 262k context ceiling. Use for Spec Kit /speckit.analyze and /speckit.converge, which cross-check spec, plan and tasks against the codebase and outgrow the reason profile's 65k window.",
+      "mode": "primary",
+      "model": "omlx/Qwen3.8-27B-8bit:qwen-long",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    }
+  }
+}

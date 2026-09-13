@@ -19,7 +19,8 @@ dotfiles_links() {
     "$d/hooks/commit-msg" "$HOME/.config/git/hooks/commit-msg" \
     "$d/ssh/config" "$HOME/.ssh/config" \
     "$d/act/actrc" "$HOME/.actrc" \
-    "$d/mise/config.toml" "$HOME/.config/mise/config.toml"
+    "$d/mise/config.toml" "$HOME/.config/mise/config.toml" \
+    "$d/opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
 
   local f
   for f in "$d"/zsh-completions/_*; do
