@@ -62,6 +62,22 @@ tasks:
     cmds:
       - ./skills/rest-api-design/lint-api.sh {{.CLI_ARGS}}
 
+  speckit:install:
+    desc: Install or refresh the Spec Kit CLI (pinned; not a brew formula)
+    vars:
+      SPECKIT_TAG: v1.0.4
+    cmds:
+      # Pinned deliberately: bare `uv tool install specify-cli` tracks PyPI and
+      # would drift the generated command files out from under existing projects.
+      - uv tool install specify-cli --force --from git+https://github.com/github/spec-kit.git@{{.SPECKIT_TAG}}
+      - specify version
+
+  speckit:status:
+    desc: Show the installed Spec Kit CLI version and check for a newer release
+    cmds:
+      - specify version
+      - specify self check
+
   mcp:install:
     desc: Distribute MCP servers from mcp/servers.json into all AI clients
     cmds:

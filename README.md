@@ -127,6 +127,111 @@ all; anything it needs has to be set in the plist or the script itself.
 auth, private infrastructure, and macOS system state are assumed to exist and are
 not provisioned — see [docs/assumptions.md](docs/assumptions.md) for the full list
 of manual prerequisites and what a laptop switch will not carry over.
+## Local LLM (oMLX + opencode)
+
+oMLX serves MLX models on Apple Silicon and is already a multi-model
+OpenAI/Anthropic-compatible server: it swaps models itself with an LRU and a
+memory guard, on `http://127.0.0.1:8000`. It is a GUI app with its own updater,
+so it stays out of the Brewfile; install it by hand.
+
+opencode comes from Homebrew and talks straight to it.
+`opencode/opencode.json` is symlinked to `~/.config/opencode/opencode.json` and
+declares one provider, `omlx`:
+
+- `baseURL` is `http://127.0.0.1:8000/v1`. Model IDs are the directory names
+  under `~/.omlx/models`, not the full `mlx-community/...` path, so
+  `Qwen3.8-27B-8bit`. Add a model there and both `model` and
+  `provider.omlx.models` need the new ID.
+- The four entries are oMLX **model profiles**, not separate models. oMLX
+  exposes a profile as `<model>:<api_name>`, and opencode splits the provider
+  off with `split("/", 2)`, so the colon survives. All four share one resident
+  28 GB engine and differ only in per-request sampling, so switching between
+  them costs nothing — verified by the engine-load count in
+  `~/.omlx/logs/server.log` not moving across a switch. The definitions live in
+  `~/Development/private/local-llm/profiles/definitions.py`; that repo owns
+  them, this one only points at them.
+- `limit.context` is per profile and must match the profile's own
+  `max_context_window`, or opencode packs prompts the server then rejects:
+  131072 for code and agent, 65536 for reason (thinking needs the headroom),
+  262144 for long. This used to read 32768 because oMLX's global
+  `sampling.max_context_window` defaulted there; it is now 262144.
+- `timeout` and `headerTimeout` are 45 minutes, sized from measurement rather
+  than taste. Prefill at the 262k ceiling runs about 137 tok/s, so
+  time-to-first-token on a full long-context prompt is roughly 32 minutes, and
+  the previous 15-minute ceiling would have killed it mid-prefill. The cost is
+  that a genuinely hung request also takes 45 minutes to give up.
+- `attachment` and the `image` input modality are on: the checkpoint really is
+  a VLM (`language_model_only: false`, 333 `vision_tower.*` tensors).
+- `reasoning` is true only on the reason profile, the one with thinking
+  enabled. oMLX returns thinking in `reasoning_content` natively for this
+  checkpoint, in both streaming and non-streaming, so no `reasoning_parser`
+  needs setting and `<think>` never leaks into `content`.
+- `autoupdate` is `false`: brew owns the binary, and opencode's own updater
+  would fight it.
+- `share` is `disabled`. The point of a local model is that the conversation
+  stays local.
+
+The `agent` block pins each agent to the profile that suits its job, so the
+right sampling is used without having to remember to switch:
+
+| agent | profile | why |
+| --- | --- | --- |
+| `build` | `qwen-code` | writing and editing code, thinking off for fast loops |
+| `plan` | `qwen-reason` | thinking on with a budget, for design work |
+| `explore`, `general` | `qwen-agent` | low temperature for reliable tool-call arguments |
+| `title`, `summary`, `compaction` | `qwen-agent` | cheap bookkeeping calls |
+| `speckit` | `qwen-reason` | Spec Kit authoring commands, which need thinking **and** write access |
+| `speckit-wide` | `qwen-long` | Spec Kit `analyze`/`converge`, which read wide and outgrow 65k |
+
+`model` (the default) is `qwen-code` and `small_model` is `qwen-agent`, which
+covers any agent not listed above.
+
+Note that agent-level `temperature`/`top_p` in this file are inert against the
+oMLX provider. The profiles set `force_sampling`, so oMLX ignores whatever
+sampling a client sends and uses the profile's own values; see the
+`local-llm` repo for why that is deliberate. Change sampling by editing the
+profile, not the agent.
+
+## Spec Kit
+
+The Spec Kit CLI is pinned and installed by `task speckit:install` rather than
+brew, because it is a `uv` tool and a floating version would drift the generated
+command files out from under existing projects. `task speckit:status` reports the
+installed version and checks upstream for a newer release.
+
+Spec Kit is **per-project by construction** — its commands shell out to
+`.specify/scripts/bash/*.sh` — so it cannot be installed into
+`~/.config/opencode/commands/`. Initialize it per project:
+
+```bash
+specify init <project> --integration opencode --non-interactive
+```
+
+That writes `/speckit.*` commands into `.opencode/commands/`. Two things about
+running them here:
+
+- Spec Kit writes only `description` frontmatter, so a command inherits
+  **whichever agent you are currently in**. Use the `speckit` agent for
+  authoring commands and `speckit-wide` for `analyze`/`converge`.
+- Do **not** run them in the built-in `plan` agent. It sets file edits and bash
+  to `ask`, so under `opencode run` the command drafts its output and then stops
+  without writing anything.
+
+The server's API key is read as `{env:OMLX_API_KEY}`, which `shell/env`
+supplies. It is committed there deliberately: it guards nothing but a loopback
+service, so it is treated as configuration rather than a secret. The cost is
+that it can drift — oMLX keeps its own copy in `~/.omlx/settings.json`, so
+rotating the key in the oMLX UI means editing `shell/env` to match.
+
+Do not run `omlx launch opencode`. It rewrites
+`~/.config/opencode/opencode.json` in place, which follows the symlink and
+writes the literal API key into this repo. The daily drift check notices the
+dirty repo, and the fix is `git checkout opencode/opencode.json`.
+
+opencode is node-based, so it picks up `NODE_EXTRA_CA_CERTS` from `zprofile`
+for anything it fetches through the proxy (the models.dev catalogue, npm
+provider packages). Traffic to oMLX itself is plain localhost HTTP and needs no
+certificate.
 
 ## Daily operations
 
