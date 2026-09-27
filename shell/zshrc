@@ -40,6 +40,21 @@ fi
 alias start-zscaler="open -a /Applications/Zscaler/Zscaler.app --hide; sudo find /Library/LaunchDaemons -name '*zscaler*' -exec launchctl load {} \;"
 alias kill-zscaler="find /Library/LaunchAgents -name '*zscaler*' -exec launchctl unload {} \;;sudo find /Library/LaunchDaemons -name '*zscaler*' -exec launchctl unload {} \;"
 
+last_changed() {
+  local count="${1:-5}"
+
+  if [[ ! "$count" =~ ^[0-9]+$ ]]; then
+    printf '%s\n' "Usage: last_changed [NUMBER]" >&2
+    return 1
+  fi
+
+  find . -type f -exec stat -t '%Y-%m-%d %H:%M:%S' -f '%m %Sm %N' {} + |
+    LC_ALL=C sort -n -k1,1 |
+    tail -n "$count" |
+    cut -d' ' -f2-
+}
+
+
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
