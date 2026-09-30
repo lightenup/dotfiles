@@ -96,3 +96,43 @@ the **Microsoft-reference look** (white fills, ownership as an accent bar)? The
 choice cascades through all of Track C and restyles every existing diagram, so it
 should be settled first. Mocking both against the Willhem overview would decide it
 in one look.
+
+---
+
+## agent output policy
+
+Central control of agent verbosity across harnesses, distributed the way skills
+already are. Full analysis in [`agent-output-policy.md`](agent-output-policy.md).
+
+Evidence (2026-09-30): benchmark response length grows **2.2x/year** for
+non-reasoning and **~5x/year** for reasoning models (Epoch AI, 77 models);
+verbosity is trained in by RLHF length bias, so it will not self-correct. The
+instruction layer is the one thing `links.sh` does not manage — no
+`~/.claude/CLAUDE.md`, no `~/.config/opencode/AGENTS.md` exists today, while
+`skills-install.sh` already proves the fan-out pattern.
+
+Scope: LiteLLM and oMLX excluded by decision. That removes the only O(1) control
+point, so this is O(N) in harnesses — each new tool costs an edit.
+
+| # | Item | Impact | Effort |
+|---|---|---|---|
+| P1 | **`agents/policy/core.md` + `links.sh` targets.** Structural rules only (answer-first ordering, bullet caps, one uncertainty line), under 15 lines — longer rule lists dilute themselves. Covers Claude Code and OpenCode, the two full-control surfaces. `symlinks-check.sh` then verifies them for free. | high | S |
+| P2 | **Mode profiles `brief` / `full`,** wired to Claude Code output styles and the existing `opencode.json` agents (`build`, `plan`, `explore`, `speckit`). One global level is wrong: code and diagramming want compression, document analysis → writing wants none, because there the prose *is* the deliverable. | high | M |
+| P3 | **Compliance eval.** Fixture prompts per surface, recording output token counts. Nothing today proves a policy is obeyed rather than merely linked, and silent non-compliance is the expected failure. | medium | S–M |
+| P4 | **Droid project stamping** (`scripts/agents-md-sync.sh`). Droid ignores user-level `AGENTS.md` — [Factory-AI/factory#112](https://github.com/Factory-AI/factory/issues/112) — so the only route is writing project-level files. | medium | M |
+| P5 | **Copilot / VS Code.** User-level `~/.copilot/instructions/`; VS Code settings are not in dotfiles yet and `chat.instructionsFilesLocations` is deprecated. Lowest control, highest churn. | low | M |
+
+**Argued against:**
+
+- **A skill as the carrier.** Skills load on trigger; verbosity is ambient. Right
+  mechanism is instruction files and output styles — a skill only fits an
+  invocable `/terse` toggle.
+- **Word-count limits.** Tokenizers are token-level; exact counts overshoot
+  10–15%. Structural caps only.
+- **"Be concise" as a global rule.** Measured ~15% accuracy loss on proof tasks;
+  chain length drives accuracy far more than phrasing. Constrain presentation,
+  never reasoning.
+
+**Open decision — settle before P2.** Is the default `brief` with `full` opted
+into, or the reverse? Mixed-workload days (code in the morning, client writing in
+the afternoon) make the wrong default expensive in opposite directions.
