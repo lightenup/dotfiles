@@ -290,6 +290,102 @@
             "context": 131072,
             "output": 32768
           }
+        },
+        "coder-q": {
+          "name": "Role: coder (8-bit) [queued, §38 soak]",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "reasoner-q": {
+          "name": "Role: reasoner (8-bit, thinking) [queued, §38 soak]",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": true,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
+        },
+        "fast-q": {
+          "name": "Role: fast (oQ4e) [queued, §38 soak]",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 8192
+          }
+        },
+        "diagram-q": {
+          "name": "Role: diagram (8-bit) [queued, §38 soak]",
+          "attachment": true,
+          "tool_call": true,
+          "temperature": true,
+          "reasoning": false,
+          "cost": {
+            "input": 0,
+            "output": 0
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          }
         }
       }
     }
